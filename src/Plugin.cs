@@ -18,7 +18,7 @@ namespace GapCloser
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.0.0";
+        public const string ModVersion = "1.1.0";
 
         // the game versions the fixes of the game's own code were checked against
         private static readonly string[] CheckedGameVersions = { "1.0.20" };
@@ -40,6 +40,8 @@ namespace GapCloser
             ApplyFix(nameof(RecipeCleanup), RecipeCleanup.Apply);
             ApplyFix(nameof(ErrorGuards), ErrorGuards.Apply);
             ApplyFix(nameof(FastTeleport), FastTeleport.Apply);
+            ApplyFix(nameof(AzuCraftyBoxesCraftingList), AzuCraftyBoxesCraftingList.Apply);
+            ApplyFix(nameof(PieceParticleCulling), PieceParticleCulling.Apply);
         }
 
         // a fix that can not be patched (possible when forced on an unchecked version) leaves the other fixes working
@@ -56,7 +58,11 @@ namespace GapCloser
         }
 
         // runs after every other script of the frame
-        private void LateUpdate() => RecipeChecks.Flush();
+        private void LateUpdate()
+        {
+            RecipeChecks.Flush();
+            FastTeleport.Frame();
+        }
 
         // true when the other mod is installed in a version the fix was checked against, otherwise logs why the fix stays off
         internal static bool TargetMatches(string fix, string guid, string[] versions)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- Faster inventory and crafting stations near many chests with AzuCraftyBoxes 1.8.19. Chest counts are kept until a chest changes, its pull rules for a few seconds, and a debug text is built only with its debug log on. At my castle the stutters with the inventory open halved.
+- Fire, smoke and portal effects of building pieces pause while no camera sees them and catch up when seen again. The castle's particle work dropped by about a third.
+- The teleport log (`Debug.LogTeleports`) also writes how the 5 s after arrival went.
+
 ## 1.0.0
 
 - First release.

@@ -32,6 +32,13 @@ namespace GapCloser.Fixes
 
         private static Trip _trip;
 
+        // the frames after a trip ends, measured for the teleport log
+        private const float AfterSeconds = 5f;
+        private const float SlowFrameMs = 40f;
+        private static float _afterUntil = -1f, _afterWorst;
+        private static int _afterSlow, _afterFrames;
+        private static double _afterSum;
+
         public static void Apply(Harmony harmony, ConfigFile config)
         {
             var enabled = config.Bind("Fixes", Name, true,
@@ -81,6 +88,24 @@ namespace GapCloser.Fixes
             if (!_log.Value) return;
             Plugin.Log.LogInfo($"{Name}: {(trip.Portal ? "portal" : "teleport")} of {Vector3.Distance(trip.From, trip.To):0} m, destination {(trip.LoadedAtStart ? "loaded already" : "not loaded")}: " +
                 $"black {Seconds(trip.Black)}, moved {Seconds(trip.Moved)}, area ready {Seconds(trip.Ready)}, done {now:0.00} s{(now >= 15f ? " (the game's 15 s fallback)" : "")}");
+            _afterUntil = Time.unscaledTime + AfterSeconds;
+            _afterSlow = _afterFrames = 0;
+            _afterWorst = 0f;
+            _afterSum = 0.0;
+        }
+
+        // from the plugin's LateUpdate: the frames right after a trip, for the teleport log
+        internal static void Frame()
+        {
+            if (_afterUntil < 0f) return;
+            float ms = Time.unscaledDeltaTime * 1000f;
+            _afterFrames++;
+            _afterSum += ms;
+            if (ms > SlowFrameMs) _afterSlow++;
+            if (ms > _afterWorst) _afterWorst = ms;
+            if (Time.unscaledTime < _afterUntil) return;
+            _afterUntil = -1f;
+            Plugin.Log.LogInfo($"{Name}: the {AfterSeconds:0} s after arrival: {_afterSlow} frames over {SlowFrameMs:0} ms, worst {_afterWorst:0} ms, average {_afterSum / _afterFrames:0.0} ms");
         }
 
         private static string Seconds(float value) => value < 0f ? "never" : $"{value:0.00} s";
