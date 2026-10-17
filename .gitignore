@@ -12,3 +12,7 @@
 !package/README.md
 !package/CHANGELOG.md
 !package/icon.png
+!assets/gapcloser_occlusion
+!assets/gapcloser_rocksupport
+!shaders/*.compute
+!shaders/*.shader

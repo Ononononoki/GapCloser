@@ -13,12 +13,13 @@ namespace GapCloser
     [BepInPlugin(ModGuid, ModName, ModVersion)]
     [BepInDependency(AzuCraftyBoxesForgeRecipes.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ValheimPlusProcreation.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ExtraSlotsFindSlot.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [DefaultExecutionOrder(30000)]
     public class Plugin : BaseUnityPlugin
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.1.0";
+        public const string ModVersion = "1.2.0";
 
         // the game versions the fixes of the game's own code were checked against
         private static readonly string[] CheckedGameVersions = { "1.0.20" };
@@ -42,6 +43,12 @@ namespace GapCloser
             ApplyFix(nameof(FastTeleport), FastTeleport.Apply);
             ApplyFix(nameof(AzuCraftyBoxesCraftingList), AzuCraftyBoxesCraftingList.Apply);
             ApplyFix(nameof(PieceParticleCulling), PieceParticleCulling.Apply);
+            ApplyFix(nameof(ValheimPlusChestCounts), ValheimPlusChestCounts.Apply);
+            ApplyFix(nameof(ExtraSlotsFindSlot), ExtraSlotsFindSlot.Apply);
+            ApplyFix(nameof(ExtraSlotsCountItems), ExtraSlotsCountItems.Apply);
+            ApplyFix(nameof(AzuCraftyBoxesChestNames), AzuCraftyBoxesChestNames.Apply);
+            ApplyFix(nameof(OcclusionCulling), OcclusionCulling.Apply);
+            ApplyFix(nameof(RockSupport), RockSupport.Apply);
         }
 
         // a fix that can not be patched (possible when forced on an unchecked version) leaves the other fixes working
@@ -62,6 +69,9 @@ namespace GapCloser
         {
             RecipeChecks.Flush();
             FastTeleport.Frame();
+            Benchmark.Frame();
+            OcclusionCulling.Frame();
+            RockSupport.Frame();
         }
 
         // true when the other mod is installed in a version the fix was checked against, otherwise logs why the fix stays off
@@ -85,6 +95,9 @@ namespace GapCloser
             }
             return true;
         }
+
+        // ForceOnUntestedVersions, for a fix with a check of its own (the graphics API)
+        internal static bool ForceOnUntested => _force.Value;
 
         // true when the game is a version the fix was checked against, otherwise logs why the fix stays off
         internal static bool GameMatches(string fix)

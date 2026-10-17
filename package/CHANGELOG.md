@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- New: rock support view. Every part of the mine rock you look at or hit is tinted by what breaking it does (blue holds others, green drops, red held by the ground, yellow held by other parts), worked out from the game's own support rule. In my tests 95 of 95 hits dropped exactly the predicted parts. Shift+O hides the tint, `gapcloser_rocksupport` switches it. The idea is from Ore Support by JereKuusela.
+- New, still being tested: occlusion culling. Building pieces fully hidden behind walls are not drawn (shadows stay), on by default on DirectX 11. At my heavy castle 0.7 to 1.4 ms faster a frame. Home switches it, Shift+Home measures it. Can be switched off in the config.
+- Less garbage near chests with ValheimPlus 0.10.3.0 (crafting from chests), ExtraSlots 1.2.21 and AzuCraftyBoxes 1.8.19. With the inventory open at my castle garbage went from 12.2 to 3.9 MB a second.
+
 ## 1.1.0
 
 - Faster inventory and crafting stations near many chests with AzuCraftyBoxes 1.8.19. Chest counts are kept until a chest changes, its pull rules for a few seconds, and a debug text is built only with its debug log on. At my castle the stutters with the inventory open halved.

@@ -27,6 +27,17 @@
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(Managed)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.UIModule"><HintPath>$(Managed)\UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(Managed)\UnityEngine.ParticleSystemModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.AssetBundleModule"><HintPath>$(Managed)\UnityEngine.AssetBundleModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.ScreenCaptureModule"><HintPath>$(Managed)\UnityEngine.ScreenCaptureModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Managed)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.AnimationModule"><HintPath>$(Managed)\UnityEngine.AnimationModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Managed)\UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- the occlusion compute shader (shaders\GapCloserHiZ.compute) built into an AssetBundle by Unity 6000.0.75f1 -->
+    <EmbeddedResource Include="assets\gapcloser_occlusion" LogicalName="GapCloser.gapcloser_occlusion" />
+    <!-- the rock part tint for RockSupport (shaders\GapCloserRockTint.shader), built the same way -->
+    <EmbeddedResource Include="assets\gapcloser_rocksupport" LogicalName="GapCloser.gapcloser_rocksupport" />
   </ItemGroup>
   <!-- copy the built dll into package/ so the zip step picks it up -->
   <Target Name="CopyToPackage" AfterTargets="Build">

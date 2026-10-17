@@ -1,0 +1,142 @@
+// depth pyramid and occlusion test for GapCloser's OcclusionCulling. every pyramid texel keeps the farthest eye depth
+// (meters) of the block it covers, so a test against it can only err toward "visible"
+#pragma kernel FirstLevel
+#pragma kernel NextLevel
+#pragma kernel TestBounds
+
+// the camera's depth: raw depth (_SrcMode 0) or the depth and normals texture, linear 0 to 1 in zw (_SrcMode 1)
+Texture2D<float4> _Src;
+uint2 _SrcSize;
+uint _SrcMode;
+// raw depth to eye depth: 1 / (_ZParams.z * raw + _ZParams.w), unity's _ZBufferParams for this camera
+float4 _ZParams;
+float _Far;
+// occluders nearer than this (meters) do not count: the player's own body, held items, first person arms
+float _IgnoreNear;
+
+// all levels in one buffer: _LevelInfo[level] = (offset, width, height, unused)
+RWStructuredBuffer<float> _Pyramid;
+float4 _LevelInfo[16];
+uint _Level;
+uint _Levels;
+
+float EyeDepth(uint2 p)
+{
+    p = min(p, _SrcSize - 1);
+    float4 s = _Src.Load(int3(p, 0));
+    float d;
+    if (_SrcMode == 0) d = 1.0 / (_ZParams.z * s.r + _ZParams.w);
+    else d = dot(s.zw, float2(1.0, 1.0 / 255.0)) * _Far;
+    if (d < _IgnoreNear) d = _Far * 4.0;
+    return d;
+}
+
+[numthreads(8, 8, 1)]
+void FirstLevel(uint3 id : SV_DispatchThreadID)
+{
+    float4 info = _LevelInfo[0];
+    if (id.x >= (uint)info.y || id.y >= (uint)info.z) return;
+    uint2 p = id.xy * 2;
+    float d = max(max(EyeDepth(p), EyeDepth(p + uint2(1, 0))), max(EyeDepth(p + uint2(0, 1)), EyeDepth(p + uint2(1, 1))));
+    _Pyramid[(uint)info.x + id.y * (uint)info.y + id.x] = d;
+}
+
+float Prev(float4 info, uint2 p)
+{
+    p = min(p, uint2((uint)info.y - 1, (uint)info.z - 1));
+    return _Pyramid[(uint)info.x + p.y * (uint)info.y + p.x];
+}
+
+[numthreads(8, 8, 1)]
+void NextLevel(uint3 id : SV_DispatchThreadID)
+{
+    float4 info = _LevelInfo[_Level];
+    if (id.x >= (uint)info.y || id.y >= (uint)info.z) return;
+    float4 prev = _LevelInfo[_Level - 1];
+    uint2 p = id.xy * 2;
+    float d = max(max(Prev(prev, p), Prev(prev, p + uint2(1, 0))), max(Prev(prev, p + uint2(0, 1)), Prev(prev, p + uint2(1, 1))));
+    _Pyramid[(uint)info.x + id.y * (uint)info.y + id.x] = d;
+}
+
+// two float4 per piece: the world bounds' center and extents
+StructuredBuffer<float4> _Bounds;
+// per piece: x 0 hidden, 1 visible, 2 off screen, 3 crosses the near plane; y nearest eye depth; z occluder depth; w level
+RWStructuredBuffer<float4> _Result;
+// per piece: its screen box in level 0 texels (x0, y0, x1, y1)
+RWStructuredBuffer<float4> _Rect;
+uint _Count;
+// world to clip with the camera's own (gl style) projection, and the world to camera matrix's third row for eye depth
+float4x4 _WorldToClip;
+float4 _ViewRow2;
+float _Near;
+uint _FlipY;
+float _Margin;
+float _MarginScale;
+// meters every box grows on each side: how far the camera may move before the result is used
+float _Inflate;
+
+[numthreads(64, 1, 1)]
+void TestBounds(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if (i >= _Count) return;
+    float3 c = _Bounds[i * 2].xyz;
+    float3 e = _Bounds[i * 2 + 1].xyz + _Inflate;
+    float2 mn = float2(1e9, 1e9), mx = float2(-1e9, -1e9);
+    float nearEye = 1e9;
+    bool behind = false;
+    [unroll]
+    for (uint k = 0; k < 8; k++)
+    {
+        float3 s = float3((k & 1) ? 1.0 : -1.0, (k & 2) ? 1.0 : -1.0, (k & 4) ? 1.0 : -1.0);
+        float4 p = float4(c + e * s, 1.0);
+        float4 clip = mul(_WorldToClip, p);
+        nearEye = min(nearEye, -dot(_ViewRow2, p));
+        if (clip.w <= 0.001) { behind = true; continue; }
+        float2 ndc = clip.xy / clip.w;
+        mn = min(mn, ndc);
+        mx = max(mx, ndc);
+    }
+    _Rect[i] = float4(0, 0, 0, 0);
+    if (behind || nearEye < _Near)
+    {
+        _Result[i] = float4(3, nearEye, 0, -1);
+        return;
+    }
+    if (mx.x < -1 || mn.x > 1 || mx.y < -1 || mn.y > 1)
+    {
+        _Result[i] = float4(2, nearEye, 0, -1);
+        return;
+    }
+    mn = clamp(mn, -1, 1);
+    mx = clamp(mx, -1, 1);
+    float2 uv0 = mn * 0.5 + 0.5, uv1 = mx * 0.5 + 0.5;
+    if (_FlipY != 0)
+    {
+        float t = 1.0 - uv1.y;
+        uv1.y = 1.0 - uv0.y;
+        uv0.y = t;
+    }
+    float2 size0 = _LevelInfo[0].yz;
+    // one texel more on each side
+    float2 px0 = uv0 * size0 - 1.0, px1 = uv1 * size0 + 1.0;
+    _Rect[i] = float4(px0, px1);
+    float span = max(px1.x - px0.x, px1.y - px0.y);
+    uint level = (uint)clamp(ceil(log2(max(span, 2.0) / 2.0)), 0.0, (float)(_Levels - 1));
+    float4 info = _LevelInfo[level];
+    float scale = exp2((float)level);
+    int2 t0 = (int2)floor(max(px0, 0.0) / scale);
+    int2 t1 = (int2)floor(min(px1, size0 - 1.0) / scale);
+    t1 = min(t1, int2((int)info.y - 1, (int)info.z - 1));
+    t1 = min(t1, t0 + 3);
+    float occ = 0;
+    [loop]
+    for (int y = t0.y; y <= t1.y; y++)
+    {
+        [loop]
+        for (int x = t0.x; x <= t1.x; x++)
+            occ = max(occ, _Pyramid[(uint)info.x + (uint)y * (uint)info.y + (uint)x]);
+    }
+    float margin = _Margin + _MarginScale * nearEye;
+    _Result[i] = float4(nearEye > occ + margin ? 0 : 1, nearEye, occ, level);
+}

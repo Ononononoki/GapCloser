@@ -1,8 +1,8 @@
 {
   "name": "GapCloser",
-  "version_number": "1.1.0",
+  "version_number": "1.2.0",
   "website_url": "https://github.com/Ononononoki/GapCloser",
-  "description": "Closes the gaps other mods leave. Portals without the 8 second wait, AzuCraftyBoxes' forge recipe bug fixed and its crafting sped up, other mods' errors guarded. Each fix only for the versions it was checked against.",
+  "description": "Rock support view for ore deposits (like Ore Support, exact), occlusion culling, fast portals, less garbage and stutter with ValheimPlus, ExtraSlots and AzuCraftyBoxes chests, recipe cleanup, error guards. Version-checked fixes.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2351"
   ]
