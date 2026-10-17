@@ -21,8 +21,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "Runs the game's recipe learning check at most twice a frame (at once, then once more at the end of the frame) instead of on every inventory change. The same recipes are learned. Works only with the checked game versions.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "Runs the game's recipe learning check once a frame instead of on every inventory change.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
             var target = AccessTools.Method(typeof(Player), "UpdateKnownRecipesList");
             harmony.Patch(target, prefix: new HarmonyMethod(AccessTools.Method(typeof(RecipeChecks), nameof(Prefix))));

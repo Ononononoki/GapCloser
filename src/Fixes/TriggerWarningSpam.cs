@@ -12,8 +12,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "Stops the game's warning spam from damage areas (like stakes) whose trigger damage is off. Gameplay unchanged. Works only with the checked game versions.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "Stops the warning spam from stakes and other damage areas.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
             harmony.Patch(AccessTools.Method(typeof(Aoe), "CauseTriggerDamage"),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(TriggerWarningSpam), nameof(Prefix))));

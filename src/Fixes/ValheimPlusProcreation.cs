@@ -17,8 +17,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "ValheimPlus 0.10.3.0: stops the NullReferenceException of its breeding patch on objects without a creature. Works only with the checked versions of ValheimPlus.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "ValheimPlus 0.10.3.0: stops its breeding error on objects without a creature.");
             if (!enabled.Value || !Plugin.TargetMatches(Name, TargetGuid, CheckedVersions)) return;
             var type = AccessTools.TypeByName(TargetType);
             var target = type == null ? null : AccessTools.Method(type, "Postfix");

@@ -20,7 +20,7 @@ namespace GapCloser.Fixes
     internal static class RockSupport
     {
         private const string Name = "RockSupport";
-        private const string Section = "RockSupport";
+        private const string Section = Sections.RockSupport;
         private const string Command = "gapcloser_rocksupport";
         private const string BundleResource = "GapCloser.gapcloser_rocksupport";
         // how far the rock may be and how long it stays shown after you last looked at it or hit it
@@ -82,18 +82,18 @@ namespace GapCloser.Fixes
         public static void Apply(Harmony harmony, ConfigFile config)
         {
             _enabled = config.Bind(Section, "Enabled", true,
-                $"Tints every part of the mine rock you look at or hit by what breaking it does: blue holds other parts (they drop when it breaks), green drops (it hangs on a blue part, or is loose already), red is held from outside, yellow is held by other parts. The hover text gives the numbers. Works out the game's own support rule, sends nothing. The console command {Command} switches it while playing.");
+                $"Tints each part of the mine rock you look at by what breaking it does: blue holds others, green drops, red is held from outside, yellow by other parts. {Command} switches it.");
             _toggleKey = config.Bind(Section, "ToggleKey", new KeyboardShortcut(KeyCode.O, KeyCode.LeftShift),
-                "Hides or shows the tint while playing (the hover lines stay). The tint is shown again at every game start.");
-            _showAnchors = config.Bind(Section, "ShowAnchors", true, "Tints the parts whose loss drops nothing too: red when held from outside (the ground, a building, a lower rock), yellow when held by other parts.");
-            _fallsColor = config.Bind(Section, "FallsColor", new Color(0.18f, 0.58f, 0.22f, 0.20f), "Tint of the parts that drop: they hang on a blue part, or are loose already (the game checks support only when a part breaks, so a loose part drops when you break any part).");
-            _bestColor = config.Bind(Section, "BestColor", new Color(0.16f, 0.38f, 0.82f, 0.24f), "Tint of the parts that hold others: breaking one drops the green parts hanging on it.");
-            _anchorColor = config.Bind(Section, "AnchorColor", new Color(0.68f, 0.16f, 0.12f, 0.20f), "Tint of the parts held from outside whose loss drops nothing.");
-            _heldColor = config.Bind(Section, "HeldColor", new Color(0.76f, 0.60f, 0.12f, 0.20f), "Tint of the parts held only by other parts of the rock whose loss drops nothing.");
-            _selfCheck = config.Bind(Section, "SelfCheck", false,
-                "For testing: every few seconds compares the worked out support with the game's own check on the rock in focus and logs any difference (the game's check writes its own \"Suport time\" log line).");
-            _logChecks = config.Bind(Section, "LogChecks", false,
-                "For testing: a log line for each of your hits that breaks a part (what was predicted to fall and what fell) and a summary every 60 s. A difference from the game is logged as a warning either way.");
+                "Hides or shows the tint while playing, shown again at every start.");
+            _showAnchors = config.Bind(Section, "ShowAnchors", true, "Also tints the parts whose loss drops nothing (red and yellow).");
+            _fallsColor = config.Bind(Section, "FallsColor", new Color(0.18f, 0.58f, 0.22f, 0.20f), "Tint of the parts that drop.");
+            _bestColor = config.Bind(Section, "BestColor", new Color(0.16f, 0.38f, 0.82f, 0.24f), "Tint of the parts that hold others.");
+            _anchorColor = config.Bind(Section, "AnchorColor", new Color(0.68f, 0.16f, 0.12f, 0.20f), "Tint of the parts held from outside.");
+            _heldColor = config.Bind(Section, "HeldColor", new Color(0.76f, 0.60f, 0.12f, 0.20f), "Tint of the parts held only by other parts.");
+            _selfCheck = config.Bind(Sections.Debug, "RockSupportSelfCheck", false,
+                "Test: compares the rock view with the game's own check every few seconds and logs any difference.");
+            _logChecks = config.Bind(Sections.Debug, "RockSupportLogChecks", false,
+                "Test: a log line for each hit that breaks a rock part.");
             if (!_enabled.Value || !Plugin.GameMatches(Name)) return;
             if (!Bind())
             {

@@ -1,0 +1,154 @@
+// sun shadow occlusion for GapCloser: a pyramid of the game's own sun shadow map (every texel keeps the farthest
+// light-space depth of its block) and a test of building pieces against it in every cascade they fall into. a piece
+// is hidden from the sun when its nearest point lies behind the farthest caster everywhere in its footprint, so a test
+// can only err toward "lit"
+#pragma kernel ShadowInfo
+#pragma kernel ShadowFirstLevel
+#pragma kernel ShadowNextLevel
+#pragma kernel TestShadow
+
+// the shadow map (raw depth) and whether its depth is reversed (1 at the light, as on direct3d)
+Texture2D<float> _ShadowSrc;
+uint _Reversed;
+
+// all levels in one buffer: _SLevelInfo[level] = (offset, width, height, unused)
+RWStructuredBuffer<float> _SPyramid;
+float4 _SLevelInfo[16];
+uint _SLevel;
+uint _SLevels;
+// x, y: the shadow map's size, read on the gpu
+RWStructuredBuffer<uint4> _SInfo;
+
+// light-space depth, 0 at the cascade's near plane and 1 at its far plane
+float Dist(float raw)
+{
+    return _Reversed != 0 ? 1.0 - raw : raw;
+}
+
+[numthreads(1, 1, 1)]
+void ShadowInfo(uint3 id : SV_DispatchThreadID)
+{
+    uint w, h;
+    _ShadowSrc.GetDimensions(w, h);
+    _SInfo[0] = uint4(w, h, 0, 0);
+}
+
+[numthreads(8, 8, 1)]
+void ShadowFirstLevel(uint3 id : SV_DispatchThreadID)
+{
+    float4 info = _SLevelInfo[0];
+    if (id.x >= (uint)info.y || id.y >= (uint)info.z) return;
+    uint w, h;
+    _ShadowSrc.GetDimensions(w, h);
+    uint2 p = id.xy * 2;
+    uint2 last = uint2(w - 1, h - 1);
+    float d = max(max(Dist(_ShadowSrc.Load(int3(min(p, last), 0))), Dist(_ShadowSrc.Load(int3(min(p + uint2(1, 0), last), 0)))),
+                  max(Dist(_ShadowSrc.Load(int3(min(p + uint2(0, 1), last), 0))), Dist(_ShadowSrc.Load(int3(min(p + uint2(1, 1), last), 0)))));
+    _SPyramid[(uint)info.x + id.y * (uint)info.y + id.x] = d;
+}
+
+float SPrev(float4 info, uint2 p)
+{
+    p = min(p, uint2((uint)info.y - 1, (uint)info.z - 1));
+    return _SPyramid[(uint)info.x + p.y * (uint)info.y + p.x];
+}
+
+[numthreads(8, 8, 1)]
+void ShadowNextLevel(uint3 id : SV_DispatchThreadID)
+{
+    float4 info = _SLevelInfo[_SLevel];
+    if (id.x >= (uint)info.y || id.y >= (uint)info.z) return;
+    float4 prev = _SLevelInfo[_SLevel - 1];
+    uint2 p = id.xy * 2;
+    float d = max(max(SPrev(prev, p), SPrev(prev, p + uint2(1, 0))), max(SPrev(prev, p + uint2(0, 1)), SPrev(prev, p + uint2(1, 1))));
+    _SPyramid[(uint)info.x + id.y * (uint)info.y + id.x] = d;
+}
+
+// the cascades captured while unity drew the shadows: texel (row, cascade) = row of unity_WorldToShadow[cascade],
+// texel (cascade, 4) = unity_ShadowSplitSpheres[cascade] (the squared radius in w)
+Texture2D<float4> _ShadowMat;
+uint _Cascades;
+// two float4 per piece: the world bounds' center and extents
+StructuredBuffer<float4> _SBounds;
+uint _SCount;
+// meters every box grows on each side, and the margin (meters) a piece must lie behind the casters
+float _SInflate;
+float _SMargin;
+// texels added around a footprint for the shadow filter
+float _SBorder;
+// per piece: x 0 hidden from the sun, 1 lit, 2 in no cascade, 3 in front of a near plane; y nearest depth; z caster
+// depth; w the cascades it fell into (bits)
+RWStructuredBuffer<float4> _SResult;
+
+[numthreads(64, 1, 1)]
+void TestShadow(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+    if (i >= _SCount) return;
+    float3 c = _SBounds[i * 2].xyz;
+    float3 e = _SBounds[i * 2 + 1].xyz + _SInflate;
+    float2 size0 = _SLevelInfo[0].yz;
+    uint cascades = 0;
+    float lastNear = 0, lastOcc = 0;
+    [loop]
+    for (uint k = 0; k < _Cascades; k++)
+    {
+        float4x4 m = float4x4(_ShadowMat.Load(int3(0, k, 0)), _ShadowMat.Load(int3(1, k, 0)), _ShadowMat.Load(int3(2, k, 0)), _ShadowMat.Load(int3(3, k, 0)));
+        // the split sphere: center in xyz, squared radius in w
+        float4 sphere = _ShadowMat.Load(int3(k, 4, 0));
+        // the cascade's tile: its split sphere's square in shadow map space (stable fit). u and v scale apart, the map of
+        // two cascades is twice as wide as high
+        float4 sc = mul(m, float4(sphere.xyz, 1.0));
+        float2 halfSize = sqrt(max(sphere.w, 0.0)) * float2(length(m[0].xyz), length(m[1].xyz));
+        float2 tile0 = saturate(sc.xy / sc.w - halfSize), tile1 = saturate(sc.xy / sc.w + halfSize);
+        float2 mn = float2(1e9, 1e9), mx = float2(-1e9, -1e9);
+        float nearDist = 1e9;
+        [unroll]
+        for (uint q = 0; q < 8; q++)
+        {
+            float3 s = float3((q & 1) ? 1.0 : -1.0, (q & 2) ? 1.0 : -1.0, (q & 4) ? 1.0 : -1.0);
+            float4 p = mul(m, float4(c + e * s, 1.0));
+            float3 uvz = p.xyz / p.w;
+            mn = min(mn, uvz.xy);
+            mx = max(mx, uvz.xy);
+            nearDist = min(nearDist, Dist(uvz.z));
+        }
+        float2 r0 = max(mn, tile0), r1 = min(mx, tile1);
+        if (r0.x >= r1.x || r0.y >= r1.y) continue;
+        cascades |= 1u << k;
+        lastNear = nearDist;
+        if (nearDist < 0.0)
+        {
+            _SResult[i] = float4(3, nearDist, 0, cascades);
+            return;
+        }
+        // the footprint in level 0 texels with a border for the filter, kept inside the tile
+        float2 px0 = max(r0 * size0 - _SBorder, tile0 * size0), px1 = min(r1 * size0 + _SBorder, tile1 * size0 - 1.0);
+        // the finest level where the footprint spans at most 8 texels, so the block read reaches at most one texel past it
+        float span = max(px1.x - px0.x, px1.y - px0.y);
+        uint level = (uint)clamp(ceil(log2(max(span, 8.0) / 8.0)), 0.0, (float)(_SLevels - 1));
+        float4 info = _SLevelInfo[level];
+        float scale = exp2((float)level);
+        int2 t0 = (int2)floor(max(px0, 0.0) / scale);
+        int2 t1 = (int2)floor(min(px1, size0 - 1.0) / scale);
+        t1 = min(t1, int2((int)info.y - 1, (int)info.z - 1));
+        t1 = min(t1, t0 + 8);
+        float occ = 0;
+        [loop]
+        for (int y = t0.y; y <= t1.y; y++)
+        {
+            [loop]
+            for (int x = t0.x; x <= t1.x; x++)
+                occ = max(occ, _SPyramid[(uint)info.x + (uint)y * (uint)info.y + (uint)x]);
+        }
+        lastOcc = occ;
+        // the margin in light-space depth: meters times the depth change per meter
+        float margin = _SMargin * length(m[2].xyz);
+        if (!(nearDist > occ + margin))
+        {
+            _SResult[i] = float4(1, nearDist, occ, cascades);
+            return;
+        }
+    }
+    _SResult[i] = float4(cascades == 0 ? 2 : 0, lastNear, lastOcc, cascades);
+}

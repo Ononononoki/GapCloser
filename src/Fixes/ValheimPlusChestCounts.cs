@@ -27,8 +27,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "ValheimPlus 0.10.3.0 with CraftFromChest: counts chest materials straight from the chests instead of building a list of every chest item, for the amounts shown under a recipe's materials and in every requirement check. Same amounts, much less garbage with the inventory or a station open.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "ValheimPlus 0.10.3.0: counts chest materials for crafting from chests without garbage.");
             if (!enabled.Value || !Plugin.TargetMatches(Name, ValheimPlusProcreation.TargetGuid, CheckedVersions)) return;
             var patch = AccessTools.TypeByName(PatchType);
             var display = patch == null ? null : AccessTools.Method(patch, "Prefix");

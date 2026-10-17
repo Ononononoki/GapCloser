@@ -1,8 +1,8 @@
 {
   "name": "GapCloser",
-  "version_number": "1.2.0",
+  "version_number": "1.3.0",
   "website_url": "https://github.com/Ononononoki/GapCloser",
-  "description": "Rock support view for ore deposits (like Ore Support, exact), occlusion culling, fast portals, less garbage and stutter with ValheimPlus, ExtraSlots and AzuCraftyBoxes chests, recipe cleanup, error guards. Version-checked fixes.",
+  "description": "Fixes and speed-ups for Valheim, AzuCraftyBoxes, ValheimPlus and ExtraSlots: faster hammer menu and inventory near chests, occlusion culling, merged distant buildings, fast portals, rock support view, smoke off by default. Version-checked.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2351"
   ]

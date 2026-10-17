@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0
+
+- Faster hammer menu near many chests with AzuCraftyBoxes 1.8.19. At my castle the chest counting dropped from 182 to about 5 ms.
+- Big bases: distant buildings are merged into fewer meshes, lights hidden behind walls go dark, loading near big bases is smoother, unchanged chests are not rebuilt, light flicker pauses out of view. Together up to 19 % more FPS at my castle (70 to 83 fps outside, 84 to 87 inside).
+- New `Smoke` option, Off by default: no smoke from fires, about 5 % more FPS at my castle, no Smoked debuff. `Smoke = Normal` brings the game's smoke back.
+- Portals: 0.5 s between trips instead of 2.
+- Optional sun shadow culling, off by default.
+- Tidier config: numbered sections, logs, test settings and benchmark keys in `9 - Debug`. Your old settings move over.
+- New benchmark key Shift+End: measures every part against all off, results in `BepInEx/GapCloser_benchmarks.txt`.
+- Hidden lights and building merging were inspired by ValheimBuildOptimization by RockBreaker (Dracoalias).
+
 ## 1.2.0
 
 - New: rock support view. Every part of the mine rock you look at or hit is tinted by what breaking it does (blue holds others, green drops, red held by the ground, yellow held by other parts), worked out from the game's own support rule. In my tests 95 of 95 hits dropped exactly the predicted parts. Shift+O hides the tint, `gapcloser_rocksupport` switches it. The idea is from Ore Support by JereKuusela.

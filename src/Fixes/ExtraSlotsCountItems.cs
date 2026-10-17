@@ -16,8 +16,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "ExtraSlots 1.2.21: skips its BowsBeforeHoes quiver count on every item count while that mod is not installed (it only made garbage then).");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "ExtraSlots 1.2.21: skips its Bows Before Hoes count while that mod is not installed.");
             if (!enabled.Value || !Plugin.TargetMatches(Name, ExtraSlotsFindSlot.TargetGuid, CheckedVersions)) return;
             var postfix = AccessTools.TypeByName(PostfixType);
             var target = postfix == null ? null : AccessTools.Method(postfix, "Postfix");

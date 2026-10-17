@@ -17,16 +17,16 @@ namespace GapCloser.Fixes
             // fermenters from chests also while there is none (loading, dead), so it throws there
             Guard(harmony, config, "AzuCraftyBoxesFermenterError", AzuCraftyBoxesForgeRecipes.TargetGuid, new[] { "1.8.19" },
                 "AzuCraftyBoxes.Patches.SearchContainersAsWell", nameof(Fermenter),
-                "AzuCraftyBoxes 1.8.19: stops the NullReferenceException of its fermenter patch while there is no local player. Works only with the checked versions of AzuCraftyBoxes.");
+                "AzuCraftyBoxes 1.8.19: stops its fermenter error while there is no player.");
             // ValheimPlus 0.10.3.0 reads the creature of every tameable for its hover text, some objects have none
             Guard(harmony, config, "ValheimPlusTameHoverError", ValheimPlusProcreation.TargetGuid, new[] { "0.10.3.0" },
                 "ValheimPlus.GameClasses.Tameable_GetHoverText_Patch", nameof(Tame),
-                "ValheimPlus 0.10.3.0: stops the NullReferenceException of its tame hover text on objects without a creature. Works only with the checked versions of ValheimPlus.");
+                "ValheimPlus 0.10.3.0: stops its tame hover error on objects without a creature.");
         }
 
         private static void Guard(Harmony harmony, ConfigFile config, string name, string guid, string[] versions, string type, string prefix, string description)
         {
-            var enabled = config.Bind("Fixes", name, true, description);
+            var enabled = config.Bind(Sections.Fixes, name, true, description);
             if (!enabled.Value || !Plugin.TargetMatches(name, guid, versions)) return;
             var found = AccessTools.TypeByName(type);
             var target = found == null ? null : AccessTools.Method(found, "Postfix");

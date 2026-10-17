@@ -22,8 +22,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "AzuCraftyBoxes 1.8.19: keeps each chest's prefab name once read instead of building it anew for every chest in every requirement check. Same names, less garbage with the inventory or a station open near many chests.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "AzuCraftyBoxes 1.8.19: keeps each chest's name instead of building it again for every check (less garbage).");
             if (!enabled.Value || !Plugin.TargetMatches(Name, AzuCraftyBoxesForgeRecipes.TargetGuid, CheckedVersions)) return;
             var container = AccessTools.TypeByName(ContainerType);
             var prefabName = container == null ? null : AccessTools.Method(container, "GetPrefabName", new System.Type[0]);

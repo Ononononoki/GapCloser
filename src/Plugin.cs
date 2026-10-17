@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
@@ -14,12 +16,13 @@ namespace GapCloser
     [BepInDependency(AzuCraftyBoxesForgeRecipes.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ValheimPlusProcreation.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ExtraSlotsFindSlot.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ObjectLoadBudget.QueueGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [DefaultExecutionOrder(30000)]
     public class Plugin : BaseUnityPlugin
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.2.0";
+        public const string ModVersion = "1.3.0";
 
         // the game versions the fixes of the game's own code were checked against
         private static readonly string[] CheckedGameVersions = { "1.0.20" };
@@ -31,8 +34,9 @@ namespace GapCloser
         private void Awake()
         {
             Log = Logger;
-            _force = Config.Bind("General", "ForceOnUntestedVersions", false,
-                "Turns the fixes on also for game and mod versions they were not checked against. A forced fix may do nothing or break something, the log names every forced fix.");
+            MoveOldSettings();
+            _force = Config.Bind(Sections.General, "ForceOnUntestedVersions", false,
+                "Turns the fixes on also for game and mod versions they were not checked against. At your own risk, the log names each one.");
             _harmony = new Harmony(ModGuid);
             ApplyFix(nameof(AzuCraftyBoxesForgeRecipes), AzuCraftyBoxesForgeRecipes.Apply);
             ApplyFix(nameof(ValheimPlusProcreation), ValheimPlusProcreation.Apply);
@@ -47,8 +51,73 @@ namespace GapCloser
             ApplyFix(nameof(ExtraSlotsFindSlot), ExtraSlotsFindSlot.Apply);
             ApplyFix(nameof(ExtraSlotsCountItems), ExtraSlotsCountItems.Apply);
             ApplyFix(nameof(AzuCraftyBoxesChestNames), AzuCraftyBoxesChestNames.Apply);
+            // the sun shadow setting is bound before occlusion, which hands it its shaders
+            ApplyFix(nameof(SunShadows), SunShadows.Apply);
             ApplyFix(nameof(OcclusionCulling), OcclusionCulling.Apply);
             ApplyFix(nameof(RockSupport), RockSupport.Apply);
+            ApplyFix(nameof(ObjectLoadBudget), ObjectLoadBudget.Apply);
+            ApplyFix(nameof(HiddenLights), HiddenLights.Apply);
+            ApplyFix(nameof(PieceBatching), PieceBatching.Apply);
+            ApplyFix(nameof(ChestReloadSkip), ChestReloadSkip.Apply);
+            ApplyFix(nameof(SmokeOption), SmokeOption.Apply);
+            ApplyFix(nameof(LightFlickerOffscreen), LightFlickerOffscreen.Apply);
+            ApplyFix(nameof(AzuCraftyBoxesBuildCounts), AzuCraftyBoxesBuildCounts.Apply);
+            ApplyFix(nameof(BenchmarkAll), BenchmarkAll.Apply);
+        }
+
+        // the sections before 1.3.0, and where their settings are now
+        private static readonly Dictionary<string, string> OldSections = new Dictionary<string, string>
+        {
+            { "General", Sections.General }, { "Options", Sections.Options }, { "Fixes", Sections.Fixes },
+            { "RockSupport", Sections.RockSupport }, { "Debug", Sections.Debug }
+        };
+
+        // test and log settings that moved to the debug section, the rock ones with a clearer name
+        private static readonly Dictionary<string, string> ToDebug = new Dictionary<string, string>
+        {
+            { "Fixes.OcclusionCullingKey", "OcclusionCullingKey" },
+            { "Fixes.OcclusionCullingBenchmarkKey", "OcclusionCullingBenchmarkKey" },
+            { "Fixes.OcclusionCullingLogLines", "OcclusionCullingLogLines" },
+            { "Fixes.BenchmarkKey", "BenchmarkKey" },
+            { "Fixes.ChestReloadSkipSelfCheck", "ChestReloadSkipSelfCheck" },
+            { "Fixes.AzuCraftyBoxesBuildCountsSelfCheck", "AzuCraftyBoxesBuildCountsSelfCheck" },
+            { "RockSupport.SelfCheck", "RockSupportSelfCheck" },
+            { "RockSupport.LogChecks", "RockSupportLogChecks" }
+        };
+
+        // settings of test tools that are not in GapCloser any more
+        private static readonly HashSet<string> Dropped = new HashSet<string>
+        {
+            "Fixes.SmoothPacing", "Fixes.SmoothPacingKey", "Fixes.OpenSkySmoke", "Fixes.ShadowBenchmarkKey"
+        };
+
+        // before anything is bound: a value set in an older cfg moves with its setting to the new sections. it runs once,
+        // the old lines are gone from the file with the first save
+        private void MoveOldSettings()
+        {
+            var orphans = AccessTools.Property(typeof(ConfigFile), "OrphanedEntries")?.GetValue(Config, null) as Dictionary<ConfigDefinition, string>;
+            if (orphans == null)
+            {
+                Log.LogWarning("the settings of an older version could not be read, they are back at their defaults");
+                return;
+            }
+            int moved = 0, dropped = 0;
+            foreach (var old in orphans.Keys.ToList())
+            {
+                if (!OldSections.TryGetValue(old.Section, out var section)) continue;
+                string id = old.Section + "." + old.Key;
+                string value = orphans[old];
+                orphans.Remove(old);
+                if (Dropped.Contains(id))
+                {
+                    dropped++;
+                    continue;
+                }
+                var now = ToDebug.TryGetValue(id, out var key) ? new ConfigDefinition(Sections.Debug, key) : new ConfigDefinition(section, old.Key);
+                if (!orphans.ContainsKey(now)) orphans[now] = value;
+                moved++;
+            }
+            if (moved + dropped > 0) Log.LogInfo($"settings moved to the new sections: {moved} with their values, {dropped} of removed test tools dropped");
         }
 
         // a fix that can not be patched (possible when forced on an unchecked version) leaves the other fixes working
@@ -70,8 +139,12 @@ namespace GapCloser
             RecipeChecks.Flush();
             FastTeleport.Frame();
             Benchmark.Frame();
+            PieceBatching.Frame();
             OcclusionCulling.Frame();
+            HiddenLights.Frame();
             RockSupport.Frame();
+            ChestReloadSkip.Frame();
+            BenchmarkAll.Frame();
         }
 
         // true when the other mod is installed in a version the fix was checked against, otherwise logs why the fix stays off

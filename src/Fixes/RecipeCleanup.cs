@@ -29,11 +29,11 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                $"Adds the console command {Command}, which lists the recipes a character could not have learned by the game's own rule (taught by the AzuCraftyBoxes forge bug). {Command} apply backs up the character file and removes them. Works only with the checked game versions.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                $"Adds the {Command} console command: lists the recipes a character could not have learned, {Command} apply backs up the character and removes them.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
-            _onSpawn = config.Bind("Fixes", "RecipeCleanupOnSpawn", OnSpawn.WithAzuCraftyBoxes,
-                $"Runs the {Command} cleanup by itself each time a character enters a world: WithAzuCraftyBoxes (only when AzuCraftyBoxes, whose forge bug it repairs, is installed), Always, or Off. It backs up the character file before it removes anything.");
+            _onSpawn = config.Bind(Sections.Fixes, "RecipeCleanupOnSpawn", OnSpawn.WithAzuCraftyBoxes,
+                $"Runs the {Command} cleanup by itself on entering a world: WithAzuCraftyBoxes (only with AzuCraftyBoxes installed), Always or Off. Backs up the character first.");
             _azuCraftyBoxes = Chainloader.PluginInfos.ContainsKey(AzuCraftyBoxesForgeRecipes.TargetGuid);
             harmony.Patch(AccessTools.Method(typeof(Terminal), "InitTerminal"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(RecipeCleanup), nameof(Register))));

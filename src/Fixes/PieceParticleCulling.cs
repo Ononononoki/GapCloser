@@ -13,8 +13,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "Fire, smoke and portal effects of building pieces pause while no camera sees them and catch up when seen again, like most of the game's other effects. Only the effects, lights are not touched. Works only with the checked game versions.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "Fire, smoke and portal effects of buildings pause while no camera sees them and catch up when seen.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
             // after every other mod has added its prefabs to the scene's list
             harmony.Patch(AccessTools.Method(typeof(ZNetScene), "Awake"),

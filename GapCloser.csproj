@@ -18,6 +18,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="test\**" />
+    <!-- drafts and test tools kept out of the build -->
+    <Compile Remove="drafts\**" />
     <Reference Include="BepInEx"><HintPath>$(ProfilePath)\BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(ProfilePath)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_valheim"><HintPath>$(Managed)\assembly_valheim.dll</HintPath><Private>false</Private></Reference>

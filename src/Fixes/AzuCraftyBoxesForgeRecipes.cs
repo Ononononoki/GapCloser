@@ -17,8 +17,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "AzuCraftyBoxes 1.8.19: stops the Forge of Potential from teaching every recipe. Works only with the checked versions of AzuCraftyBoxes.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "AzuCraftyBoxes 1.8.19: the Forge of Potential no longer teaches every recipe.");
             if (!enabled.Value || !Plugin.TargetMatches(Name, TargetGuid, CheckedVersions)) return;
             var type = AccessTools.TypeByName(TargetType);
             var target = type == null ? null : AccessTools.Method(type, "Postfix");

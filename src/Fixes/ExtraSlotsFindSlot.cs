@@ -23,8 +23,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "ExtraSlots 1.2.21: finds a slot for other mods (API.FindSlot) without building a text for every slot it checks. Same slot found, less garbage every frame mods like CosmeticArmor look up their slots.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "ExtraSlots 1.2.21: finds slots for other mods without garbage.");
             if (!enabled.Value || !Plugin.TargetMatches(Name, TargetGuid, CheckedVersions)) return;
             var api = AccessTools.TypeByName("ExtraSlots.API");
             var find = api == null ? null : AccessTools.Method(api, "FindSlot", new[] { typeof(string) });

@@ -34,8 +34,8 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "Keeps each chest's count of a material until that chest changes and AzuCraftyBoxes' pull rule answers for a few seconds, and skips a debug text it builds for every recipe you are short on. Less work and garbage with the inventory or a crafting station open near many chests (AzuCraftyBoxes 1.8.19).");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "AzuCraftyBoxes 1.8.19: faster inventory and crafting near many chests (chest counts kept until a chest changes).");
             if (!enabled.Value || !Plugin.TargetMatches(Name, AzuCraftyBoxesForgeRecipes.TargetGuid, CheckedVersions)) return;
             var container = AccessTools.TypeByName(ContainerType);
             var itemCount = container == null ? null : AccessTools.Method(container, "ItemCount", new[] { typeof(string) });

@@ -7,20 +7,25 @@ namespace GapCloser.Fixes
     // the game holds every portal trip at least 8 seconds and every other teleport 2, even when the destination is loaded
     // already. this fades to black in FastTeleportFadeSeconds, moves the player as soon as the screen is black, and lets
     // the game end the trip as soon as the destination is ready: the area loaded, the floor found and, with
-    // ValheimCommunityPatch, the server's buildings there. the game's own 15 second fallback stays
+    // ValheimCommunityPatch, the server's buildings there. the game's own 15 second fallback stays. after a trip the next
+    // one may start after FastTeleportCooldownSeconds instead of the game's 2
     internal static class FastTeleport
     {
         private const string Name = "FastTeleport";
         // the game moves the player once its timer passes 2 and lets a portal trip end once it passes 8
         private const float PastGameWaits = 8.01f;
+        // the game refuses a new teleport until its cooldown passed this
+        private const float GameCooldown = 2f;
         // the player counts as moved once this close to the target on the ground plane
         private const float MovedWithin = 1f;
         private static readonly AccessTools.FieldRef<Player, float> Timer = AccessTools.FieldRefAccess<Player, float>("m_teleportTimer");
         private static readonly AccessTools.FieldRef<Player, Vector3> FromPos = AccessTools.FieldRefAccess<Player, Vector3>("m_teleportFromPos");
         private static readonly AccessTools.FieldRef<Player, Vector3> TargetPos = AccessTools.FieldRefAccess<Player, Vector3>("m_teleportTargetPos");
         private static readonly AccessTools.FieldRef<Player, bool> Distant = AccessTools.FieldRefAccess<Player, bool>("m_distantTeleport");
-        private static ConfigEntry<float> _fade;
+        private static readonly AccessTools.FieldRef<Player, float> Cooldown = AccessTools.FieldRefAccess<Player, float>("m_teleportCooldown");
+        private static ConfigEntry<float> _fade, _cooldown;
         private static ConfigEntry<bool> _log;
+        private static bool _loggedCooldown;
 
         // one trip of the local player, times in seconds from its start (-1 until reached)
         private class Trip
@@ -41,18 +46,34 @@ namespace GapCloser.Fixes
 
         public static void Apply(Harmony harmony, ConfigFile config)
         {
-            var enabled = config.Bind("Fixes", Name, true,
-                "Teleports and portals take only as long as loading the destination really needs: a short fade to black, the move at once, and back as soon as the area, its floor and (with ValheimCommunityPatch) the server's buildings are there. Works only with the checked game versions.");
-            _fade = config.Bind("Fixes", "FastTeleportFadeSeconds", 0.25f, new ConfigDescription(
-                "Seconds the screen takes to fade to black, and back, on a teleport (the game uses 1).", new AcceptableValueRange<float>(0.05f, 1f)));
-            _log = config.Bind("Debug", "LogTeleports", false,
-                "Writes one line per teleport to the log: distance, whether the destination was loaded already, and when the screen was black, the player moved, the area was ready and the trip ended.");
+            var enabled = config.Bind(Sections.Fixes, Name, true,
+                "Portals and teleports take only as long as loading the destination needs.");
+            _fade = config.Bind(Sections.Fixes, "FastTeleportFadeSeconds", 0.25f, new ConfigDescription(
+                "Seconds of the fade to black and back (the game uses 1).", new AcceptableValueRange<float>(0.05f, 1f)));
+            _cooldown = config.Bind(Sections.Fixes, "FastTeleportCooldownSeconds", 0.5f, new ConfigDescription(
+                "Seconds after a trip before the next one works (the game uses 2).", new AcceptableValueRange<float>(0.5f, 2f)));
+            _log = config.Bind(Sections.Debug, "LogTeleports", false,
+                "A log line for each teleport with its timings.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
             var update = AccessTools.Method(typeof(Player), "UpdateTeleport");
             harmony.Patch(update, prefix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(BeforeUpdate))),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(AfterUpdate))));
             harmony.Patch(AccessTools.Method(typeof(Hud), "GetFadeDuration"), postfix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(Fade))));
-            Plugin.Log.LogInfo($"{Name}: on, fade {_fade.Value} s, log {_log.Value}");
+            harmony.Patch(AccessTools.Method(typeof(Player), "TeleportTo", new[] { typeof(Vector3), typeof(Quaternion), typeof(bool) }),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(BeforeTeleport))));
+            Plugin.Log.LogInfo($"{Name}: on, fade {_fade.Value} s, cooldown {_cooldown.Value} s, log {_log.Value}");
+        }
+
+        // a cooldown past the setting counts as the game's full 2 s, so the game's own check lets the trip start
+        private static void BeforeTeleport(Player __instance)
+        {
+            if (__instance != Player.m_localPlayer) return;
+            float waited = Cooldown(__instance);
+            if (waited >= GameCooldown || waited < _cooldown.Value) return;
+            Cooldown(__instance) = GameCooldown;
+            if (_loggedCooldown) return;
+            _loggedCooldown = true;
+            Plugin.Log.LogInfo($"{Name}: a teleport {waited:0.00} s after the last trip let through (the game waits {GameCooldown:0} s), first time this session");
         }
 
         private static void BeforeUpdate(Player __instance)

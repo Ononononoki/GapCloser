@@ -74,6 +74,13 @@ namespace GapCloser.Fixes
                 cmd.SetComputeIntParam(_shader, "_Level", level);
                 cmd.DispatchCompute(_shader, _next, ((int)LevelInfo[level].y + 7) / 8, ((int)LevelInfo[level].z + 7) / 8, 1);
             }
+            RecordTest(cmd, worldToClip, worldToCamera, bounds, count, near, margin, marginScale, inflate, flipY, result, rect);
+        }
+
+        // one more test of count bounds against the pyramid the last Record built (the same frame's command buffer)
+        public void RecordTest(CommandBuffer cmd, Matrix4x4 worldToClip, Matrix4x4 worldToCamera, ComputeBuffer bounds, int count, float near,
+            float margin, float marginScale, float inflate, int flipY, ComputeBuffer result, ComputeBuffer rect)
+        {
             cmd.SetComputeBufferParam(_shader, _test, "_Pyramid", Pyramid);
             cmd.SetComputeBufferParam(_shader, _test, "_Bounds", bounds);
             cmd.SetComputeIntParam(_shader, "_Count", count);
