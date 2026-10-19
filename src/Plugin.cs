@@ -22,7 +22,7 @@ namespace GapCloser
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.3.0";
+        public const string ModVersion = "1.3.1";
 
         // the game versions the fixes of the game's own code were checked against
         private static readonly string[] CheckedGameVersions = { "1.0.20" };
@@ -44,7 +44,6 @@ namespace GapCloser
             ApplyFix(nameof(RecipeChecks), RecipeChecks.Apply);
             ApplyFix(nameof(RecipeCleanup), RecipeCleanup.Apply);
             ApplyFix(nameof(ErrorGuards), ErrorGuards.Apply);
-            ApplyFix(nameof(FastTeleport), FastTeleport.Apply);
             ApplyFix(nameof(AzuCraftyBoxesCraftingList), AzuCraftyBoxesCraftingList.Apply);
             ApplyFix(nameof(PieceParticleCulling), PieceParticleCulling.Apply);
             ApplyFix(nameof(ValheimPlusChestCounts), ValheimPlusChestCounts.Apply);
@@ -63,6 +62,12 @@ namespace GapCloser
             ApplyFix(nameof(LightFlickerOffscreen), LightFlickerOffscreen.Apply);
             ApplyFix(nameof(AzuCraftyBoxesBuildCounts), AzuCraftyBoxesBuildCounts.Apply);
             ApplyFix(nameof(BenchmarkAll), BenchmarkAll.Apply);
+        }
+
+        // plugin identities are available after the loader finishes creating the plugins
+        private void Start()
+        {
+            ApplyFix(nameof(FastTeleport), FastTeleport.Apply);
         }
 
         // the sections before 1.3.0, and where their settings are now

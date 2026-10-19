@@ -23,10 +23,8 @@ namespace GapCloser.Fixes
         private const string Section = Sections.RockSupport;
         private const string Command = "gapcloser_rocksupport";
         private const string BundleResource = "GapCloser.gapcloser_rocksupport";
-        // how far the rock may be and how long it stays shown after you last looked at it or hit it
-        private const float MaxDistance = 40f;
-        private const float ShowSeconds = 60f;
-        private const float RefreshSeconds = 0.3f;
+        // distance to the aimed surface, linger after looking away, and support refresh interval
+        private static ConfigEntry<float> MaxDistance, ShowSeconds, RefreshSeconds;
         private const float SelfCheckSeconds = 2f;
         private const float StatSeconds = 60f;
         // the game's overlap buffer holds 128 colliders (MineRock5.m_tempColliders)
@@ -51,6 +49,11 @@ namespace GapCloser.Fixes
         private static BoundReader _readBound;
         private static AccessTools.FieldRef<int> _rayMask, _groundLayer;
         private static Action<MineRock5> _setupColliders, _updateSupport;
+        private static AccessTools.FieldRef<Player, RaycastHit[]> _hoverHits;
+        private static Collider _aimCollider;
+        private static MineRock5 _aimRock;
+        private static Vector3 _aimPoint, _lastPoint;
+        private static int _aimFrame = -1;
 
         // drawing
         private static Material _tint;
@@ -74,9 +77,12 @@ namespace GapCloser.Fixes
         private static int _fallsNow, _best, _bestFalls, _anchors, _aliveCount, _hovered = -1, _fullQueries;
         private static string _hoverBase, _hoverText;
         private static int _hoverFor = int.MinValue;
+        private static KeyboardShortcut _hoverShortcut;
+        private static bool _hoverShown;
 
         // stats
-        private static int _refreshes, _checks, _compared, _mismatches;
+        private static int _refreshes, _checks, _compared, _mismatches, _hoverSamples;
+        private static double _maxRefreshMs;
         private static bool _loggedFirst, _loggedMismatch, _loggedFull;
 
         public static void Apply(Harmony harmony, ConfigFile config)
@@ -85,6 +91,12 @@ namespace GapCloser.Fixes
                 $"Tints each part of the mine rock you look at by what breaking it does: blue holds others, green drops, red is held from outside, yellow by other parts. {Command} switches it.");
             _toggleKey = config.Bind(Section, "ToggleKey", new KeyboardShortcut(KeyCode.O, KeyCode.LeftShift),
                 "Hides or shows the tint while playing, shown again at every start.");
+            MaxDistance = config.Bind(Section, "MaxDistance", 25f,
+                new ConfigDescription("Maximum distance from your character to the aimed rock surface in meters. Reuses the game's hover ray, which reaches 50 meters from the camera.", new AcceptableValueRange<float>(1f, 50f)));
+            ShowSeconds = config.Bind(Section, "ShowSeconds", 5f,
+                new ConfigDescription("Seconds the tint remains after looking away. 0 hides it immediately. For a longer view, try 10 or 30. MaxDistance still applies.", new AcceptableValueRange<float>(0f, 300f)));
+            RefreshSeconds = config.Bind(Section, "RefreshSeconds", 1f,
+                new ConfigDescription("Seconds between support calculations while the tint is visible. Starts at 1 for testing. Set 0.5 for faster updates. Hit diagnostics can refresh outside this interval.", new AcceptableValueRange<float>(0.1f, 10f)));
             _showAnchors = config.Bind(Section, "ShowAnchors", true, "Also tints the parts whose loss drops nothing (red and yellow).");
             _fallsColor = config.Bind(Section, "FallsColor", new Color(0.18f, 0.58f, 0.22f, 0.20f), "Tint of the parts that drop.");
             _bestColor = config.Bind(Section, "BestColor", new Color(0.16f, 0.38f, 0.82f, 0.24f), "Tint of the parts that hold others.");
@@ -100,6 +112,8 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: the game's mine rock parts did not look as checked, off");
                 return;
             }
+            harmony.Patch(AccessTools.Method(typeof(Player), "FindHoverObject"),
+                transpiler: new HarmonyMethod(AccessTools.Method(typeof(RockSupport), nameof(HoverRay))));
             LoadTint();
             // a prefix: on the rock's owner the hit's damage and support check run inside Damage, the state before it is needed
             harmony.Patch(AccessTools.Method(typeof(MineRock5), nameof(MineRock5.Damage)),
@@ -110,6 +124,8 @@ namespace GapCloser.Fixes
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(RockSupport), nameof(Register))));
             _on = true;
             Plugin.Log.LogInfo($"{Name}: on, tint {(_tint != null ? $"ready, {_toggleKey.Value} hides it" : "missing, hover text only")}, self-check {(_selfCheck.Value ? "on" : "off")}, console command {Command}");
+            if (_logChecks.Value)
+                Plugin.Log.LogInfo($"{Name}: reuses the game's hover ray, range {MaxDistance.Value:0.##} m, linger {ShowSeconds.Value:0.##} s, support refresh {RefreshSeconds.Value:0.##} s; hidden tint skips normal support refreshes");
         }
 
         private static bool Bind()
@@ -138,6 +154,7 @@ namespace GapCloser.Fixes
                 _supported = AccessTools.FieldRefAccess<bool>(area, "m_supported");
                 _rayMask = AccessTools.StaticFieldRefAccess<int>(rayMask);
                 _groundLayer = AccessTools.StaticFieldRefAccess<int>(groundLayer);
+                _hoverHits = AccessTools.FieldRefAccess<Player, RaycastHit[]>("m_raycastHoverHits");
                 _setupColliders = AccessTools.MethodDelegate<Action<MineRock5>>(setup);
                 _updateSupport = AccessTools.MethodDelegate<Action<MineRock5>>(update);
                 // the stored box of a part, read without boxing the private struct
@@ -164,6 +181,74 @@ namespace GapCloser.Fixes
                 return false;
             }
         }
+
+        // preserve the game's ray result on the stack while reading its valid hit count
+        private static IEnumerable<CodeInstruction> HoverRay(IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            var ray = AccessTools.Method(typeof(Physics), nameof(Physics.RaycastNonAlloc),
+                new[] { typeof(Vector3), typeof(Vector3), typeof(RaycastHit[]), typeof(float), typeof(int) });
+            var read = AccessTools.Method(typeof(RockSupport), nameof(ReuseHover));
+            int found = 0;
+            for (int i = 0; i < codes.Count; i++)
+            {
+                if (!codes[i].Calls(ray)) continue;
+                found++;
+                codes.InsertRange(i + 1, new[]
+                {
+                    new CodeInstruction(OpCodes.Dup),
+                    new CodeInstruction(OpCodes.Ldarg_0),
+                    new CodeInstruction(OpCodes.Call, read),
+                });
+                i += 3;
+            }
+            if (found != 1) throw new InvalidOperationException("the game's hover ray did not match the checked layout");
+            return codes;
+        }
+
+        // the nearest solid hit blocks rocks behind it, just as the original view's ray did
+        private static void ReuseHover(int count, Player player)
+        {
+            if (!_on || player != Player.m_localPlayer) return;
+            try
+            {
+                var hits = _hoverHits(player);
+                Collider nearest = null;
+                Vector3 point = default;
+                float distance = float.PositiveInfinity;
+                for (int i = 0; i < count && i < hits.Length; i++)
+                {
+                    var c = hits[i].collider;
+                    if (c == null || c.isTrigger || (c.attachedRigidbody != null && c.attachedRigidbody.gameObject == player.gameObject)) continue;
+                    if (hits[i].distance >= distance) continue;
+                    nearest = c;
+                    point = hits[i].point;
+                    distance = hits[i].distance;
+                }
+                if (nearest != _aimCollider)
+                {
+                    _aimCollider = nearest;
+                    _aimRock = nearest != null ? nearest.GetComponentInParent<MineRock5>() : null;
+                }
+                _aimPoint = point;
+                _aimFrame = Time.frameCount;
+                if (_logChecks.Value) _hoverSamples++;
+            }
+            catch (Exception e)
+            {
+                _on = false;
+                _aimFrame = -1;
+                Forget();
+                Plugin.Log.LogWarning($"{Name}: hover reuse failed and the view stops ({e.GetType().Name}: {e.Message})");
+            }
+        }
+
+        private static bool CanShow(bool looking, float elapsed, float distanceSquared, float seconds, float distance) =>
+            distanceSquared <= distance * distance && (looking || (seconds > 0f && elapsed < seconds));
+
+        private static string ToggleHint(KeyboardShortcut key, bool shown) =>
+            key.MainKey == KeyCode.None ? "Set ToggleKey in 4 - Rock Support to toggle the tint" :
+            $"[{key}] {(shown ? "Hide" : "Show")} rock support tint";
 
         private static void LoadTint()
         {
@@ -221,10 +306,11 @@ namespace GapCloser.Fixes
         // the local player's hits put the rock in focus; the support as it is before the hit is kept to check the outcome
         private static void Damaged(MineRock5 __instance, HitData hit)
         {
-            if (!_on || __instance == null || hit == null || Player.m_localPlayer == null || hit.GetAttacker() != Player.m_localPlayer) return;
+            if (!_on || !_logChecks.Value || __instance == null || hit == null || Player.m_localPlayer == null || hit.GetAttacker() != Player.m_localPlayer) return;
             try
             {
                 Focus(__instance);
+                _lastPoint = hit.m_point;
                 Refresh(__instance);
                 if (_pending != null) Resolve(_pending, true);
                 _pending = new Pending
@@ -381,10 +467,11 @@ namespace GapCloser.Fixes
             Areas.Clear();
         }
 
-        // every frame: what the crosshair is on, the refresh, the tint
+        // read the reused hover result, expire the view, and draw cached support each frame
         internal static void Frame()
         {
             if (!_on) return;
+            Stats();
             if (_tint != null && _toggleKey.Value.IsDown() && !OcclusionCulling.Typing())
             {
                 _show = !_show;
@@ -400,15 +487,11 @@ namespace GapCloser.Fixes
                 return;
             }
             _hovered = -1;
-            var ray = new Ray(cam.transform.position, cam.transform.forward);
-            if (Physics.Raycast(ray, out var hit, MaxDistance, _rayMask(), QueryTriggerInteraction.Ignore) && hit.collider != null)
+            bool looking = _aimFrame == Time.frameCount && _aimCollider != null && _aimRock != null;
+            if (looking)
             {
-                var rock = hit.collider.GetComponentInParent<MineRock5>();
-                if (rock != null)
-                {
-                    Focus(rock);
-                    if (rock == _rock && IndexOf.TryGetValue(hit.collider, out int index)) _hovered = index;
-                }
+                Focus(_aimRock);
+                _lastPoint = _aimPoint;
             }
             Watch();
             if (_rock == null)
@@ -417,11 +500,12 @@ namespace GapCloser.Fixes
                 if (Areas.Count > 0) Forget();
                 return;
             }
-            if (Time.time - _lastSeen > ShowSeconds || Vector3.Distance(player.transform.position, _rock.transform.position) > MaxDistance * 1.5f)
+            if (!CanShow(looking, Time.time - _lastSeen, (player.transform.position - _lastPoint).sqrMagnitude, ShowSeconds.Value, MaxDistance.Value))
             {
                 Forget();
                 return;
             }
+            if (!_show) return;
             var view = _nview(_rock);
             if (view == null || !view.IsValid())
             {
@@ -429,9 +513,9 @@ namespace GapCloser.Fixes
                 return;
             }
             uint revision = view.GetZDO().DataRevision;
-            if (Time.time >= _nextRefresh || revision != _lastRevision)
+            if (Time.time >= _nextRefresh)
             {
-                _nextRefresh = Time.time + RefreshSeconds;
+                _nextRefresh = Time.time + RefreshSeconds.Value;
                 _lastRevision = revision;
                 try
                 {
@@ -445,13 +529,14 @@ namespace GapCloser.Fixes
                     return;
                 }
             }
+            if (looking && IndexOf.TryGetValue(_aimCollider, out int index)) _hovered = index;
             Draw(cam);
-            Stats();
         }
 
         // the same boxes, query, skips and support rules as MineRock5.UpdateSupport and GetSupport, gathered once per refresh
         private static void Refresh(MineRock5 rock)
         {
+            long started = _logChecks.Value ? System.Diagnostics.Stopwatch.GetTimestamp() : 0L;
             if (!_haveSetupBounds(rock))
             {
                 _setupColliders(rock);
@@ -553,6 +638,8 @@ namespace GapCloser.Fixes
                 _nextCheck = Time.time + SelfCheckSeconds;
                 SelfCheck(rock, n);
             }
+            if (started != 0L)
+                _maxRefreshMs = Math.Max(_maxRefreshMs, (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
         }
 
         // the game's own check (it only sets the flags; destroying is CheckSupport's job on the rock's owner)
@@ -581,6 +668,7 @@ namespace GapCloser.Fixes
             if (_tint == null || _rock == null || !_show) return;
             for (int i = 0; i < Areas.Count && i < _alive.Length; i++)
             {
+                if (_health(Areas[i]) <= 0f) continue;
                 var kind = KindOf(i);
                 var block = kind == Kind.Drops ? _fallsBlock : kind == Kind.Holds ? _bestBlock : !_showAnchors.Value ? null :
                     kind == Kind.Outside ? _anchorBlock : kind == Kind.Held ? _heldBlock : null;
@@ -597,25 +685,32 @@ namespace GapCloser.Fixes
         // the hover lines, rebuilt only when the rock's numbers or the hovered part change
         private static void HoverText(MineRock5 __instance, ref string __result)
         {
-            if (!_on || __instance == null || __instance != _rock || Areas.Count == 0) return;
-            int key = _refreshes * 1024 + _hovered;
-            if (key != _hoverFor || !ReferenceEquals(__result, _hoverBase))
+            if (!_on || __instance == null) return;
+            bool details = _show && __instance == _rock && Areas.Count > 0;
+            int key = details ? _refreshes * 1024 + _hovered : int.MinValue;
+            if (key != _hoverFor || !ReferenceEquals(__result, _hoverBase) || !_toggleKey.Value.Equals(_hoverShortcut) || _show != _hoverShown)
             {
                 _hoverFor = key;
                 _hoverBase = __result;
+                _hoverShortcut = _toggleKey.Value;
+                _hoverShown = _show;
                 var text = new StringBuilder(__result);
-                text.Append($"\n<size=80%><color=#C9A46A>{_aliveCount} parts left, {_fallsNow} loose (they drop when you break any part)</color>");
-                if (_best >= 0) text.Append($"\n<color=#7FB0BC>Best part to break drops {_bestFalls}</color>");
-                if (_hovered >= 0 && _hovered < _alive.Length && _alive[_hovered])
+                text.Append($"\n<size=80%><color=#C9A46A>{ToggleHint(_hoverShortcut, _hoverShown)}</color>");
+                if (details)
                 {
-                    int h = _hovered;
-                    var kind = KindOf(h);
-                    string state = kind == Kind.Drops
-                        ? (!_now[h] ? "loose, drops when you break any part" : "hangs on a blue part, drops when that breaks") + (_holds[h] > 0 ? $", breaking it drops {_falls[h]}" : "") + " (green)"
-                        : kind == Kind.Holds ? $"holds {_holds[h]} other parts, breaking it drops {_falls[h]} (blue)"
-                        : kind == Kind.Outside ? "held from outside, breaking it drops nothing (red)"
-                        : "held by other parts, breaking it drops nothing (yellow)";
-                    text.Append($"\n<color=#A8A8A8>This part: {state}</color>");
+                    text.Append($"\n<color=#C9A46A>{_aliveCount} parts left, {_fallsNow} loose (they drop when you break any part)</color>");
+                    if (_best >= 0) text.Append($"\n<color=#7FB0BC>Best part to break drops {_bestFalls}</color>");
+                    if (_hovered >= 0 && _hovered < _alive.Length && _alive[_hovered])
+                    {
+                        int h = _hovered;
+                        var kind = KindOf(h);
+                        string state = kind == Kind.Drops
+                            ? (!_now[h] ? "loose, drops when you break any part" : "hangs on a blue part, drops when that breaks") + (_holds[h] > 0 ? $", breaking it drops {_falls[h]}" : "") + " (green)"
+                            : kind == Kind.Holds ? $"holds {_holds[h]} other parts, breaking it drops {_falls[h]} (blue)"
+                            : kind == Kind.Outside ? "held from outside, breaking it drops nothing (red)"
+                            : "held by other parts, breaking it drops nothing (yellow)";
+                        text.Append($"\n<color=#A8A8A8>This part: {state}</color>");
+                    }
                 }
                 text.Append("</size>");
                 _hoverText = text.ToString();
@@ -631,8 +726,9 @@ namespace GapCloser.Fixes
             if (Time.time < _nextStat) return;
             _nextStat = Time.time + StatSeconds;
             if (_refreshes > 0 && _logChecks.Value)
-                Plugin.Log.LogInfo($"{Name}: last {StatSeconds:0} s: {_refreshes} refreshes, self-check {_checks} times over {_compared} parts, {_mismatches} differ from the game; {_fullQueries} full queries; this session {_hitsBroke} hits broke parts, {_matched} outcomes matched, {_differed} different, {_skipped} not compared");
-            _refreshes = _checks = _compared = _mismatches = _fullQueries = 0;
+                Plugin.Log.LogInfo($"{Name}: last {StatSeconds:0} s: {_refreshes} refreshes, self-check {_checks} times over {_compared} parts, {_mismatches} differ from the game; {_fullQueries} full queries; {_hoverSamples} reused hover samples, max refresh {_maxRefreshMs:0.###} ms; this session {_hitsBroke} hits broke parts, {_matched} outcomes matched, {_differed} different, {_skipped} not compared");
+            _refreshes = _checks = _compared = _mismatches = _fullQueries = _hoverSamples = 0;
+            _maxRefreshMs = 0;
         }
     }
 }

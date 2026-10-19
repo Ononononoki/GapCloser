@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.1
+
+- Added the tested ValheimOptimized, Balrond Core Optimizer, and ValheimCommunityPatch versions and overlap details to the compatibility section.
+- FastTeleport automatically steps aside for OdinPlus or Muindor QuickTeleport. `FastTeleportOtherModIDs` can list other dedicated teleport timing mods. The saved FastTeleport value is preserved, and ValheimCommunityPatch alone does not disable it.
+
+- Rock support view now uses the game's existing hover ray. No additional camera raycast, and interaction reach stays the same.
+- Configurable rock view range and linger time. Defaults are 25 meters and 5 seconds after looking away. Set `ShowSeconds = 0` for immediate hiding.
+- The rock tooltip shows the configured toggle key and whether it will show or hide the tint. The default remains Shift+O.
+- Normal support calculations refresh once a second by default. Set `RefreshSeconds = 0.5` for faster updates. Hidden tint skips normal support calculations, and destroyed parts stop being drawn immediately.
+- Per-hit outcome diagnostics now run only with `RockSupportLogChecks` enabled.
+- Benchmark reports include the worst frame alongside the median and p95.
+
 ## 1.3.0
 
 - Faster hammer menu near many chests with AzuCraftyBoxes 1.8.19. At my castle the chest counting dropped from 182 to about 5 ms.

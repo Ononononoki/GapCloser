@@ -16,3 +16,5 @@
 !assets/gapcloser_rocksupport
 !shaders/*.compute
 !shaders/*.shader
+/local_*/
+/release_*/

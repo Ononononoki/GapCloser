@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -12,6 +15,7 @@ namespace GapCloser.Fixes
     internal static class FastTeleport
     {
         private const string Name = "FastTeleport";
+        internal const string KnownTeleportMods = "elg.QuickTeleport,muindor.QuickTeleport";
         // the game moves the player once its timer passes 2 and lets a portal trip end once it passes 8
         private const float PastGameWaits = 8.01f;
         // the game refuses a new teleport until its cooldown passed this
@@ -25,6 +29,7 @@ namespace GapCloser.Fixes
         private static readonly AccessTools.FieldRef<Player, float> Cooldown = AccessTools.FieldRefAccess<Player, float>("m_teleportCooldown");
         private static ConfigEntry<float> _fade, _cooldown;
         private static ConfigEntry<bool> _log;
+        private static ConfigEntry<string> _otherModIDs;
         private static bool _loggedCooldown;
 
         // one trip of the local player, times in seconds from its start (-1 until reached)
@@ -54,7 +59,15 @@ namespace GapCloser.Fixes
                 "Seconds after a trip before the next one works (the game uses 2).", new AcceptableValueRange<float>(0.5f, 2f)));
             _log = config.Bind(Sections.Debug, "LogTeleports", false,
                 "A log line for each teleport with its timings.");
+            _otherModIDs = config.Bind(Sections.Fixes, "FastTeleportOtherModIDs", KnownTeleportMods,
+                "Comma-separated plugin IDs whose presence disables only GapCloser's FastTeleport. Defaults cover OdinPlus and Muindor QuickTeleport. Add IDs for other dedicated teleport timing mods. Empty disables this automatic check. Restart after changing it.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
+            string other = OtherTeleportMod(_otherModIDs.Value, Chainloader.PluginInfos.Keys);
+            if (other != null)
+            {
+                Plugin.Log.LogInfo($"{Name}: off, {other} is loaded and takes priority; the saved FastTeleport setting is unchanged");
+                return;
+            }
             var update = AccessTools.Method(typeof(Player), "UpdateTeleport");
             harmony.Patch(update, prefix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(BeforeUpdate))),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(AfterUpdate))));
@@ -62,6 +75,17 @@ namespace GapCloser.Fixes
             harmony.Patch(AccessTools.Method(typeof(Player), "TeleportTo", new[] { typeof(Vector3), typeof(Quaternion), typeof(bool) }),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(BeforeTeleport))));
             Plugin.Log.LogInfo($"{Name}: on, fade {_fade.Value} s, cooldown {_cooldown.Value} s, log {_log.Value}");
+        }
+
+        private static string OtherTeleportMod(string ids, IEnumerable<string> loaded)
+        {
+            var present = new HashSet<string>(loaded, StringComparer.OrdinalIgnoreCase);
+            foreach (string value in (ids ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string guid = value.Trim();
+                if (guid.Length > 0 && !string.Equals(guid, Plugin.ModGuid, StringComparison.OrdinalIgnoreCase) && present.Contains(guid)) return guid;
+            }
+            return null;
         }
 
         // a cooldown past the setting counts as the game's full 2 s, so the game's own check lets the trip start

@@ -18,7 +18,7 @@
 - **Unchanged chests are not rebuilt** when their open flag changes or the ship under them moves.
 - **Building effects pause off screen.** Fires, ovens and portals no camera sees stop simulating and catch up when seen.
 - **Light flicker pauses** for lights whose light reaches nothing in view.
-- **Rock support view.** Each part of a mine rock you look at is tinted by what breaking it does: blue holds others, green drops, red is held by the ground, yellow by other parts. Shift+O hides it.
+- **Rock support view.** Each part of a mine rock you look at is tinted by what breaking it does. Blue holds others, green drops, red is held from outside, and yellow is held by other parts. Shift+O toggles the tint, and the tooltip shows your configured key. Range, linger time, and refresh interval are configurable.
 - **Smoke off by default.** No smoke from fires, kilns and smelters: much less physics near many fires, and no Smoked debuff. Fires, kilns and smelters work as before. `Smoke = Normal` brings the game's smoke back.
 - **Recipe learning check** once a frame instead of on every inventory change.
 - **No warning spam** from stakes and other damage areas.
@@ -47,7 +47,20 @@
 
 ## Config
 
-`BepInEx/config/onononoki.GapCloser.cfg`. Every fix can be switched off on its own. Sections: `1 - General`, `2 - Options` (Smoke, Off by default), `3 - Fixes`, `4 - Rock Support` (colors, key), `9 - Debug` (logs, self-checks, and the benchmark keys: Home switches occlusion culling to compare, Shift+End measures every part and writes `BepInEx/GapCloser_benchmarks.txt`). Settings from older versions move to the new sections by themselves.
+`BepInEx/config/onononoki.GapCloser.cfg`. Every fix can be switched off on its own. Sections: `1 - General`, `2 - Options` (Smoke, Off by default), `3 - Fixes`, `4 - Rock Support` (colors, key, range, linger time, refresh interval), `9 - Debug` (logs, self-checks, and the benchmark keys: Home switches occlusion culling to compare, Shift+End measures every part and writes `BepInEx/GapCloser_benchmarks.txt`). Settings from older versions move to the new sections by themselves.
+
+### Rock support settings
+
+These settings are in `4 - Rock Support`.
+
+| Setting | Default | Effect |
+|---|---|---|
+| `MaxDistance` | `25` | Maximum distance in meters from your character to the aimed rock surface. |
+| `ShowSeconds` | `5` | How long the tint stays after looking away. Set `0` for immediate hiding, or use a longer value such as `10` or `30`. |
+| `RefreshSeconds` | `1` | Seconds between normal support calculations. Set `0.5` for faster updates. |
+| `ToggleKey` | `O + LeftShift` | Shows or hides the tint. The tooltip displays your binding and the current action. |
+
+The range still applies while the tint lingers. Targeting reuses the game's hover ray, which reaches 50 meters from the camera. Support colors refresh at the configured interval, and normal support calculations pause while the tint is hidden. The optional hit diagnostics can calculate outside that interval when `RockSupportLogChecks` is enabled in `9 - Debug`.
 
 ## Compatibility
 
@@ -55,6 +68,24 @@
 - AzuCraftyBoxes, ValheimPlus, ExtraSlots and ValheimCommunityPatch are optional. Made to run next to [ValheimCommunityPatch](https://thunderstore.io/c/valheim/p/MidnightMods/ValheimCommunityPatch/).
 - Occlusion culling, hidden lights and sun shadow culling need DirectX 11 for now.
 - After a game update the game fixes stay off until a new GapCloser checks them, or until you turn on `ForceOnUntestedVersions`.
+
+The following combination was tested in game with GapCloser 1.3.0 on Valheim 1.0.20. These are the tested versions, not a claim about every future release.
+
+| Mod | Tested version | How it runs alongside GapCloser |
+|---|---|---|
+| ValheimCommunityPatch | `0.37.0` | GapCloser's nearby object budget also runs inside its spawn queue. |
+| ValheimOptimized | `1.1.1` | Works alongside GapCloser. Its own loop handles distant spawning, so GapCloser's distant object budget does not run there. The nearby budget still runs through ValheimCommunityPatch's queue when present. |
+| Balrond Core Optimizer | `0.2.5` | Works alongside GapCloser with its default Conservative Mode. It covers different parts of the game and delegates overlapping work to ValheimCommunityPatch. |
+
+ValheimOptimized and Balrond Core Optimizer are not made obsolete by GapCloser. With ValheimOptimized loaded, ValheimCommunityPatch steps aside for four overlapping fixes, including hotbar keys and terrain work. Its hotbar stand-down warning is expected in that tested combination. The logs showed no exceptions or errors. [Compatibility test details](https://github.com/Ononononoki/GapCloser/issues/1).
+
+### Dedicated teleport timing mods
+
+GapCloser automatically skips only its `FastTeleport` patches when OdinPlus QuickTeleport or Muindor QuickTeleport is loaded. The other mod takes priority for teleport timing. Other GapCloser features remain active, and ValheimCommunityPatch alone does not disable FastTeleport.
+
+Detection runs once after plugin creation and matches plugin IDs, not every mod that touches a teleport method. The `FastTeleportOtherModIDs` setting in `3 - Fixes` defaults to `elg.QuickTeleport,muindor.QuickTeleport`. Add a comma-separated plugin ID for another dedicated teleport timing mod. Clear the list to disable automatic detection, or set `FastTeleport = false` to disable GapCloser's teleport changes manually. Restart after changing the list or installed mods.
+
+The saved `FastTeleport` value is left unchanged. Removing the other timing mod lets GapCloser's version run again on the next start if that setting is true. QuickTeleport detection was checked offline. Teleporting with QuickTeleport installed has not been tested in game.
 
 ## Credits
 

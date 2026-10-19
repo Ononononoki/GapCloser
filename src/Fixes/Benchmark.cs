@@ -246,8 +246,8 @@ namespace GapCloser.Fixes
                             $"{_onLabel} minus {_offLabel} {longOn - longOff:+0.00;-0.00} ms, jump {(LongJumps[1] > 0 ? LongJump[1] / LongJumps[1] : 0):0.00} ms {_onLabel}, {(LongJumps[0] > 0 ? LongJump[0] / LongJumps[0] : 0):0.00} {_offLabel}";
             }
             Record($"{_name}: BENCHMARK at ({_pos.x:0}, {_pos.z:0}), moved {_moved:0.0} m, turned {_turned:0} deg: " +
-                $"{_onLabel} {onMedian:0.00} ms median ({onMean:0.00} mean, {P95(Ms[1]):0.0} p95, {nOn} frames{extra}), " +
-                $"{_offLabel} {offMedian:0.00} ms median ({offMean:0.00} mean, {P95(Ms[0]):0.0} p95, {nOff} frames); " +
+                $"{_onLabel} {onMedian:0.00} ms median ({onMean:0.00} mean, {P95(Ms[1]):0.0} p95, {Ms[1][nOn - 1]:0.0} worst, {nOn} frames{extra}), " +
+                $"{_offLabel} {offMedian:0.00} ms median ({offMean:0.00} mean, {P95(Ms[0]):0.0} p95, {Ms[0][nOff - 1]:0.0} worst, {nOff} frames); " +
                 $"{_onLabel} minus {_offLabel}: {onMedian - offMedian:+0.00;-0.00} ms median, {onMean - offMean:+0.00;-0.00} ms mean, " +
                 $"draw calls {Draw[1] / nOn - Draw[0] / nOff:+0;-0} (of {Draw[0] / nOff:0}), set pass {Pass[1] / nOn - Pass[0] / nOff:+0;-0} (of {Pass[0] / nOff:0}), " +
                 $"triangles {(Tris[1] / nOn - Tris[0] / nOff) / 1000:+0;-0}k; " +
