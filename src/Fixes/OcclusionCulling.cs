@@ -28,6 +28,8 @@ namespace GapCloser.Fixes
         // boxes grow by the camera's speed times this (seconds), at least MinInflate meters, against the readback delay
         private const float InflateSeconds = 0.15f;
         private const float MinInflate = 0.25f;
+        // different prefab names of left out pieces collected before the one log line about them
+        private const int NotBuildingSample = 6;
         // hidden results in a row before a piece is hidden
         private const int HideAfter = 3;
         // results older than this many frames are dropped, hidden results are ignored when the camera moved or turned
@@ -469,11 +471,17 @@ namespace GapCloser.Fixes
         }
 
         // a still piece once: left out are pieces without a valid network object (the placement ghost), under a rigidbody
-        // (ships, carts), with moving parts (doors, anything animated), or without a mesh
+        // (ships, carts), with moving parts (doors, anything animated), without a mesh, or without wear and tear (plants,
+        // saplings, pickables and debris that PlantEverything turns into pieces: they grow, get picked and regrow)
         private static Entry Read(Piece piece)
         {
             var view = piece.GetComponent<ZNetView>();
             if (view == null || !view.IsValid()) return null;
+            if (piece.GetComponent<WearNTear>() == null)
+            {
+                NotBuilding(piece);
+                return null;
+            }
             if (piece.GetComponentInParent<Rigidbody>() != null || piece.GetComponent<Door>() != null || piece.GetComponentInChildren<Animator>(true) != null) return null;
             var renderers = new List<Renderer>();
             Bounds bounds = default;
@@ -498,6 +506,22 @@ namespace GapCloser.Fixes
                 SunModes = new ShadowCastingMode[renderers.Count],
                 SunChanged = new byte[renderers.Count],
             };
+        }
+
+        // counts the pieces left out for having no wear and tear, and names the first few once a session
+        private static int _notBuilding;
+        private static readonly List<string> NotBuildingNames = new List<string>();
+        private static bool _loggedNotBuilding;
+
+        private static void NotBuilding(Piece piece)
+        {
+            _notBuilding++;
+            if (_loggedNotBuilding) return;
+            string name = Utils.GetPrefabName(piece.gameObject);
+            if (!NotBuildingNames.Contains(name)) NotBuildingNames.Add(name);
+            if (NotBuildingNames.Count < NotBuildingSample) return;
+            _loggedNotBuilding = true;
+            Plugin.Log.LogInfo($"{Name}: pieces without wear and tear are left out (plants, pickables, debris), {_notBuilding} so far, for example {string.Join(", ", NotBuildingNames)}, first time this session");
         }
 
         private static void Hide(Entry entry)

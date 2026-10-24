@@ -144,12 +144,14 @@ namespace GapCloser.Fixes
             _bounds.SetData(BoundsData);
         }
 
-        // a still building piece with lights: left out are pieces under a rigidbody (ships, carts) and without a valid network
-        // object (the placement ghost). its box holds every light's full range and every flame
+        // a still building piece with lights: left out are pieces under a rigidbody (ships, carts), without a valid network
+        // object (the placement ghost) and without wear and tear (glowing plants and pickables PlantEverything turns into
+        // pieces). its box holds every light's full range and every flame
         private static Entry Read(Piece piece)
         {
             var view = piece.GetComponent<ZNetView>();
             if (view == null || !view.IsValid() || piece.GetComponentInParent<Rigidbody>() != null) return null;
+            if (piece.GetComponent<WearNTear>() == null) return null;
             var lights = new List<Light>();
             Bounds bounds = default;
             bool any = false;

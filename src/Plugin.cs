@@ -22,7 +22,7 @@ namespace GapCloser
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.3.1";
+        public const string ModVersion = "1.3.2";
 
         // the game versions the fixes of the game's own code were checked against
         private static readonly string[] CheckedGameVersions = { "1.0.20" };

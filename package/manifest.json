@@ -1,6 +1,6 @@
 {
   "name": "GapCloser",
-  "version_number": "1.3.1",
+  "version_number": "1.3.2",
   "website_url": "https://github.com/Ononononoki/GapCloser",
   "description": "Fixes and speed-ups for Valheim, AzuCraftyBoxes, ValheimPlus and ExtraSlots: faster hammer menu and inventory near chests, occlusion culling, merged distant buildings, fast portals, rock support view, smoke off by default. Version-checked.",
   "dependencies": [

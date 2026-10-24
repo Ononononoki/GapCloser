@@ -67,6 +67,7 @@ The range still applies while the tint lingers. Targeting reuses the game's hove
 - Client side. Nothing to install on the server, other players do not need it.
 - AzuCraftyBoxes, ValheimPlus, ExtraSlots and ValheimCommunityPatch are optional. Made to run next to [ValheimCommunityPatch](https://thunderstore.io/c/valheim/p/MidnightMods/ValheimCommunityPatch/).
 - Occlusion culling, hidden lights and sun shadow culling need DirectX 11 for now.
+- Occlusion culling and hidden lights leave out pieces that are not buildings, such as PlantEverything plants, saplings and debris, so they never flicker.
 - After a game update the game fixes stay off until a new GapCloser checks them, or until you turn on `ForceOnUntestedVersions`.
 
 The following combination was tested in game with GapCloser 1.3.0 on Valheim 1.0.20. These are the tested versions, not a claim about every future release.

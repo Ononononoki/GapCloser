@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- Fixed small trees, stones, branches and other plants flickering or disappearing (occlusion culling now leaves out pieces that are not buildings, for example PlantEverything plants).
+
 ## 1.3.1
 
 - Added the tested ValheimOptimized, Balrond Core Optimizer, and ValheimCommunityPatch versions and overlap details to the compatibility section.
