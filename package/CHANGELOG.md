@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3
+
+- Works with ValheimPlus 10.4.0 and ValheimCommunityPatch 0.38.0. The ValheimPlus chest counts and tame hover guard, and the smoother loading inside ValheimCommunityPatch's spawn queue, were checked against the new versions and turn on again. ValheimPlus 10.4.0 fixed its breeding error itself, so that guard stays for 0.10.3.0.
+- Fixed ValheimPlus' workbench spawn protection range not reaching the workbench, forge and artisan table. They kept 20 m while the stonecutter got the configured range, because ValheimPlus only resizes round areas and these stations use a capsule. New `ValheimPlusSpawnArea` setting in `3 - Fixes`, on by default.
+
 ## 1.3.2
 
 - Fixed small trees, stones, branches and other plants flickering or disappearing (occlusion culling now leaves out pieces that are not buildings, for example PlantEverything plants).

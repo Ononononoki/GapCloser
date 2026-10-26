@@ -15,7 +15,7 @@ namespace GapCloser.Fixes
         private const string PatchType = "ValheimPlus.GameClasses.InventoryGui_SetupRequirement_Patch";
         private const string CheckType = "ValheimPlus.GameClasses.Player_HaveRequirementItems_Transpiler";
         private const string AssistantType = "ValheimPlus.InventoryAssistant";
-        private static readonly string[] CheckedVersions = { "0.10.3.0" };
+        private static readonly string[] CheckedVersions = { "0.10.3.0", "10.4.0.0" };
         // stays empty, it only stands in for the list ValheimPlus would build
         private static readonly List<ItemDrop.ItemData> NoItems = new List<ItemDrop.ItemData>();
         private static System.Reflection.MethodInfo _listOf, _amountIn;
@@ -28,7 +28,7 @@ namespace GapCloser.Fixes
         public static void Apply(Harmony harmony, ConfigFile config)
         {
             var enabled = config.Bind(Sections.Fixes, Name, true,
-                "ValheimPlus 0.10.3.0: counts chest materials for crafting from chests without garbage.");
+                "ValheimPlus 0.10.3.0 and 10.4.0.0: counts chest materials for crafting from chests without garbage.");
             if (!enabled.Value || !Plugin.TargetMatches(Name, ValheimPlusProcreation.TargetGuid, CheckedVersions)) return;
             var patch = AccessTools.TypeByName(PatchType);
             var display = patch == null ? null : AccessTools.Method(patch, "Prefix");
@@ -57,7 +57,7 @@ namespace GapCloser.Fixes
                 if (_replaced == 1) on.Add(what);
                 else Plugin.Log.LogWarning($"{Name}: ValheimPlus' {what} did not look as checked, left as it is");
             }
-            if (on.Count > 0) Plugin.Log.LogInfo($"{Name}: on for ValheimPlus 0.10.3.0 ({string.Join(", ", on)})");
+            if (on.Count > 0) Plugin.Log.LogInfo($"{Name}: on for ValheimPlus {string.Join(", ", CheckedVersions)} ({string.Join(", ", on)})");
         }
 
         // the list call and the count call that reads it become Hold and CountHeld, only when they come as a pair with

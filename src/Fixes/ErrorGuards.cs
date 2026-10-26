@@ -18,10 +18,10 @@ namespace GapCloser.Fixes
             Guard(harmony, config, "AzuCraftyBoxesFermenterError", AzuCraftyBoxesForgeRecipes.TargetGuid, new[] { "1.8.19" },
                 "AzuCraftyBoxes.Patches.SearchContainersAsWell", nameof(Fermenter),
                 "AzuCraftyBoxes 1.8.19: stops its fermenter error while there is no player.");
-            // ValheimPlus 0.10.3.0 reads the creature of every tameable for its hover text, some objects have none
-            Guard(harmony, config, "ValheimPlusTameHoverError", ValheimPlusProcreation.TargetGuid, new[] { "0.10.3.0" },
+            // ValheimPlus 0.10.3.0 and 10.4.0.0 (the same postfix) read the creature of every tameable for its hover text, some objects have none
+            Guard(harmony, config, "ValheimPlusTameHoverError", ValheimPlusProcreation.TargetGuid, new[] { "0.10.3.0", "10.4.0.0" },
                 "ValheimPlus.GameClasses.Tameable_GetHoverText_Patch", nameof(Tame),
-                "ValheimPlus 0.10.3.0: stops its tame hover error on objects without a creature.");
+                "ValheimPlus 0.10.3.0 and 10.4.0.0: stops its tame hover error on objects without a creature.");
         }
 
         private static void Guard(Harmony harmony, ConfigFile config, string name, string guid, string[] versions, string type, string prefix, string description)

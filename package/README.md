@@ -27,9 +27,9 @@
 ### Other mods (each only for the version named)
 
 - **AzuCraftyBoxes 1.8.19:** faster hammer menu near many chests (each material is counted once, not again for every piece), faster inventory and crafting (chest counts kept until a chest changes, chest names kept), the Forge of Potential no longer teaches every recipe, `gapcloser_fixrecipes` removes the recipes it taught, its fermenter error guarded.
-- **ValheimPlus 0.10.3.0:** chest counts for crafting from chests without garbage, its breeding and tame hover errors guarded.
+- **ValheimPlus 0.10.3.0 and 10.4.0:** chest counts for crafting from chests without garbage, its tame hover error guarded (and its breeding error on 0.10.3.0, 10.4.0 fixed it itself), and its spawn protection range also reaches the workbench, forge and artisan table, not only the stonecutter.
 - **ExtraSlots 1.2.21:** slot lookups without garbage, its Bows Before Hoes count skipped while that mod is not installed.
-- **ValheimCommunityPatch 0.36.1 and 0.37.0:** the smoother loading also works inside its spawn queue.
+- **ValheimCommunityPatch 0.36.1, 0.37.0 and 0.38.0:** the smoother loading also works inside its spawn queue.
 
 ## Measured at my castle (about 6,000 pieces)
 
