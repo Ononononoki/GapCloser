@@ -16,6 +16,8 @@ namespace GapCloser.Fixes
         private const string ContainerType = "AzuCraftyBoxes.IContainers.VanillaContainer";
         private const int MaxNames = 4096;
         private static readonly string[] CheckedVersions = { "1.8.19" };
+        // the code of GetPrefabName in the checked versions (CodeCheck)
+        private static readonly string[] CheckedCode = { "CA53C12B" };
         private static readonly Dictionary<Container, string> Names = new Dictionary<Container, string>(new SameObject());
         private static AccessTools.FieldRef<object, Container> _containerOf;
         private static bool _logged;
@@ -33,6 +35,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: AzuCraftyBoxes' chest prefab name or its chest not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, prefabName, CheckedCode)) return;
             _containerOf = AccessTools.FieldRefAccess<Container>(container, field.Name);
             harmony.Patch(prefabName, prefix: new HarmonyMethod(AccessTools.Method(typeof(AzuCraftyBoxesChestNames), nameof(Prefix))));
             Plugin.Log.LogInfo($"{Name}: on for AzuCraftyBoxes 1.8.19");

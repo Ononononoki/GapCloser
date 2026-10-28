@@ -17,7 +17,7 @@ namespace GapCloser.Fixes
         private const string Name = "ObjectLoadBudget";
         private const int MinPerFrame = 2;
         internal const string QueueGuid = "MidnightsFX.ValheimCommunityPatch";
-        private static readonly string[] QueueVersions = { "0.36.1", "0.37.0", "0.38.0" };
+        private static readonly string[] QueueVersions = { "0.36.1", "0.37.0", "0.38.0", "0.39.0" };
         private const string QueueType = "ValheimCommunityPatch.Patches.Performance.SpawnQueueCachePatch";
         private const string QueueMethod = "CreateObjectsSortedPrefix";
 

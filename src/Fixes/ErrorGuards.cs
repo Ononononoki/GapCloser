@@ -15,16 +15,17 @@ namespace GapCloser.Fixes
         {
             // AzuCraftyBoxes 1.8.19 reads the local player first thing in its fermenter postfix, ValheimPlus fills
             // fermenters from chests also while there is none (loading, dead), so it throws there
-            Guard(harmony, config, "AzuCraftyBoxesFermenterError", AzuCraftyBoxesForgeRecipes.TargetGuid, new[] { "1.8.19" },
+            Guard(harmony, config, "AzuCraftyBoxesFermenterError", AzuCraftyBoxesForgeRecipes.TargetGuid, new[] { "1.8.19" }, new[] { "648AD3CD" },
                 "AzuCraftyBoxes.Patches.SearchContainersAsWell", nameof(Fermenter),
                 "AzuCraftyBoxes 1.8.19: stops its fermenter error while there is no player.");
             // ValheimPlus 0.10.3.0 and 10.4.0.0 (the same postfix) read the creature of every tameable for its hover text, some objects have none
-            Guard(harmony, config, "ValheimPlusTameHoverError", ValheimPlusProcreation.TargetGuid, new[] { "0.10.3.0", "10.4.0.0" },
+            Guard(harmony, config, "ValheimPlusTameHoverError", ValheimPlusProcreation.TargetGuid, new[] { "0.10.3.0", "10.4.0.0" }, new[] { "2294510E" },
                 "ValheimPlus.GameClasses.Tameable_GetHoverText_Patch", nameof(Tame),
                 "ValheimPlus 0.10.3.0 and 10.4.0.0: stops its tame hover error on objects without a creature.");
         }
 
-        private static void Guard(Harmony harmony, ConfigFile config, string name, string guid, string[] versions, string type, string prefix, string description)
+        // code: the code of the guarded Postfix in the checked versions (CodeCheck)
+        private static void Guard(Harmony harmony, ConfigFile config, string name, string guid, string[] versions, string[] code, string type, string prefix, string description)
         {
             var enabled = config.Bind(Sections.Fixes, name, true, description);
             if (!enabled.Value || !Plugin.TargetMatches(name, guid, versions)) return;
@@ -35,6 +36,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{name}: {type}.Postfix not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(name, target, code)) return;
             try
             {
                 harmony.Patch(target, prefix: new HarmonyMethod(AccessTools.Method(typeof(ErrorGuards), prefix)));

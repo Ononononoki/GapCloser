@@ -13,6 +13,8 @@ namespace GapCloser.Fixes
         private const string Name = "AzuCraftyBoxesForgeRecipes";
         private const string TargetType = "AzuCraftyBoxes.Patches.PlayerHaveRequirementsPatchRBoolInt";
         private static readonly string[] CheckedVersions = { "1.8.19" };
+        // the code of its Postfix in the checked versions (CodeCheck)
+        private static readonly string[] CheckedCode = { "4A726BA5" };
         private static bool _actedOnce;
 
         public static void Apply(Harmony harmony, ConfigFile config)
@@ -27,6 +29,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: {TargetType}.Postfix not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, target, CheckedCode)) return;
             try
             {
                 harmony.Patch(target, prefix: new HarmonyMethod(AccessTools.Method(typeof(AzuCraftyBoxesForgeRecipes), nameof(Prefix))));

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
@@ -11,7 +12,7 @@ using UnityEngine;
 
 namespace GapCloser
 {
-    // fixes for the game and for other mods, each one only for the versions it was checked against, and fast teleports
+    // fixes for the game and for other mods, each one only where the code it relies on is the checked code, and fast teleports
     [BepInPlugin(ModGuid, ModName, ModVersion)]
     [BepInDependency(AzuCraftyBoxesForgeRecipes.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ValheimPlusProcreation.TargetGuid, BepInDependency.DependencyFlags.SoftDependency)]
@@ -22,7 +23,7 @@ namespace GapCloser
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.3.3";
+        public const string ModVersion = "1.3.4";
 
         // the game versions the fixes of the game's own code were checked against
         private static readonly string[] CheckedGameVersions = { "1.0.20" };
@@ -36,7 +37,7 @@ namespace GapCloser
             Log = Logger;
             MoveOldSettings();
             _force = Config.Bind(Sections.General, "ForceOnUntestedVersions", false,
-                "Turns the fixes on also for game and mod versions they were not checked against. At your own risk, the log names each one.");
+                "Turns the fixes on also for game versions they were not checked against and where another mod's code they rely on changed. At your own risk, the log names each one.");
             _harmony = new Harmony(ModGuid);
             ApplyFix(nameof(AzuCraftyBoxesForgeRecipes), AzuCraftyBoxesForgeRecipes.Apply);
             ApplyFix(nameof(ValheimPlusProcreation), ValheimPlusProcreation.Apply);
@@ -150,10 +151,12 @@ namespace GapCloser
             HiddenLights.Frame();
             RockSupport.Frame();
             ChestReloadSkip.Frame();
+            ConflictScan.Frame();
             BenchmarkAll.Frame();
         }
 
-        // true when the other mod is installed in a version the fix was checked against, otherwise logs why the fix stays off
+        // true when the other mod is installed. a version other than the checked ones is only logged: the fix's own checks of
+        // the code it relies on decide (CodeMatches, or the places a transpiler counts)
         internal static bool TargetMatches(string fix, string guid, string[] versions)
         {
             if (!Chainloader.PluginInfos.TryGetValue(guid, out var info))
@@ -163,16 +166,23 @@ namespace GapCloser
             }
             string installed = info.Metadata.Version.ToString();
             if (Array.IndexOf(versions, installed) < 0)
-            {
-                if (_force.Value)
-                {
-                    Log.LogWarning($"{fix}: {guid} {installed} is not a checked version ({string.Join(", ", versions)}), forced on by ForceOnUntestedVersions");
-                    return true;
-                }
-                Log.LogWarning($"{fix}: {guid} {installed} is not a checked version ({string.Join(", ", versions)}), the fix stays off (ForceOnUntestedVersions turns it on)");
-                return false;
-            }
+                Log.LogInfo($"{fix}: {guid} {installed} is not a checked version ({string.Join(", ", versions)}), the code the fix relies on decides");
             return true;
+        }
+
+        // true when the other mod's method has code the fix was checked against, otherwise logs which method changed
+        internal static bool CodeMatches(string fix, MethodBase method, params string[] known)
+        {
+            string print = CodeCheck.Of(method);
+            if (print != null && Array.IndexOf(known, print) >= 0) return true;
+            string what = method == null ? "a method" : $"{method.DeclaringType}.{method.Name}";
+            if (_force.Value)
+            {
+                Log.LogWarning($"{fix}: {what} is not the checked code ({print ?? "unreadable"}, checked {string.Join(", ", known)}), forced on by ForceOnUntestedVersions");
+                return true;
+            }
+            Log.LogWarning($"{fix}: {what} is not the checked code ({print ?? "unreadable"}, checked {string.Join(", ", known)}), the fix stays off (ForceOnUntestedVersions turns it on)");
+            return false;
         }
 
         // ForceOnUntestedVersions, for a fix with a check of its own (the graphics API)

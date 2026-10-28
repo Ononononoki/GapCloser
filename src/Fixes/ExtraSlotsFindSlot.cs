@@ -15,6 +15,8 @@ namespace GapCloser.Fixes
         public const string TargetGuid = "shudnal.ExtraSlots";
         private const string Name = "ExtraSlotsFindSlot";
         private static readonly string[] CheckedVersions = { "1.2.21" };
+        // the code of API.FindSlot in the checked versions (CodeCheck)
+        private static readonly string[] CheckedCode = { "9A10BCD7" };
         private static readonly Dictionary<string, string> CustomIds = new Dictionary<string, string>();
         private static AccessTools.FieldRef<object, string> _idOf;
         private static FieldInfo _slots;
@@ -37,6 +39,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: ExtraSlots' FindSlot, its slot list or a slot's id not found as checked, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, find, CheckedCode)) return;
             _idOf = AccessTools.FieldRefAccess<string>(_slotType, "_id");
             harmony.Patch(find, transpiler: new HarmonyMethod(AccessTools.Method(typeof(ExtraSlotsFindSlot), nameof(Transpiler))));
             Plugin.Log.LogInfo($"{Name}: on for ExtraSlots 1.2.21");

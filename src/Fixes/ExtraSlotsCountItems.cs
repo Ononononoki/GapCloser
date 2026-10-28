@@ -11,6 +11,8 @@ namespace GapCloser.Fixes
         private const string Name = "ExtraSlotsCountItems";
         private const string PostfixType = "ExtraSlots.Compatibility.BBHCompat+Inventory_CountItems_BBHFix";
         private static readonly string[] CheckedVersions = { "1.2.21" };
+        // the code of the skipped Postfix in the checked versions (CodeCheck)
+        private static readonly string[] CheckedCode = { "7A843ED5" };
         private static AccessTools.FieldRef<bool> _bbhOn;
         private static bool _logged;
 
@@ -28,6 +30,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: ExtraSlots' item count postfix or its BowsBeforeHoes switch not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, target, CheckedCode)) return;
             _bbhOn = AccessTools.StaticFieldRefAccess<bool>(on);
             harmony.Patch(target, prefix: new HarmonyMethod(AccessTools.Method(typeof(ExtraSlotsCountItems), nameof(Prefix))));
             Plugin.Log.LogInfo($"{Name}: on for ExtraSlots 1.2.21 (BowsBeforeHoes support {(_bbhOn() ? "on, so the postfix still runs" : "off")})");

@@ -1,6 +1,6 @@
 # GapCloser
 
-Fixes and speed-ups for Valheim and the mods I play with: a faster hammer menu and inventory near many chests with AzuCraftyBoxes, occlusion culling and merged buildings for big bases, fast portals, a rock support view for ore deposits, smoke off for more FPS, other mods' errors guarded. Each fix only for the versions it was checked against. Made for my own modpack, not a fix-all. More fixes may come for the gaps I find in the mods I play with. Bug reports and suggestions are welcome in Issues.
+Fixes and speed-ups for Valheim and the mods I play with: a faster hammer menu and inventory near many chests with AzuCraftyBoxes, occlusion culling and merged buildings for big bases, fast portals, a rock support view for ore deposits, smoke off for more FPS, other mods' errors guarded. Fixes for other mods check the code they rely on, so new versions of those mods keep them on while that code is unchanged. Made for my own modpack, not a fix-all. More fixes may come for the gaps I find in the mods I play with. Bug reports and suggestions are welcome in Issues.
 
 A Valheim mod by Onononoki. Get it on Thunderstore: https://thunderstore.io/c/valheim/p/Onononoki/GapCloser/
 

@@ -20,8 +20,8 @@ namespace GapCloser.Fixes
     {
         private const string Name = "AzuCraftyBoxesBuildCounts";
         private const string PatchType = "AzuCraftyBoxes.Patches.HaveRequirementsPatch2";
-        // the size of the check's code as read in 1.8.19: another build of it stands the fix down
-        private const int CheckedCodeBytes = 1016;
+        // the code of the check in the checked versions (CodeCheck): other code stands the fix down
+        private static readonly string[] CheckedCode = { "40B333A6" };
         private const float StatSeconds = 60f;
         // with the self-check on, every this many checks AzuCraftyBoxes answers too and the two are compared
         private const int SelfCheckEvery = 20;
@@ -62,6 +62,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: AzuCraftyBoxes' build check is not the one this was written for, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, postfix, CheckedCode)) return;
             if (!Resolve())
             {
                 Plugin.Log.LogWarning($"{Name}: a method or setting AzuCraftyBoxes' build check uses was not found, the fix stays off");
@@ -78,14 +79,12 @@ namespace GapCloser.Fixes
 
         private static HarmonyMethod Method(string name) => new HarmonyMethod(AccessTools.Method(typeof(AzuCraftyBoxesBuildCounts), name));
 
-        // its arguments and its code size as read
+        // its arguments as read
         private static bool SameShape(MethodInfo postfix)
         {
             var p = postfix.GetParameters();
-            if (p.Length != 6 || p[0].ParameterType != typeof(Player) || p[1].ParameterType != typeof(bool).MakeByRefType() || p[2].ParameterType != typeof(Piece) ||
-                p[3].ParameterType != typeof(Player.RequirementMode) || p[4].ParameterType != typeof(HashSet<string>) || p[5].ParameterType != typeof(Dictionary<string, int>)) return false;
-            var body = postfix.GetMethodBody();
-            return body != null && body.GetILAsByteArray().Length == CheckedCodeBytes;
+            return p.Length == 6 && p[0].ParameterType == typeof(Player) && p[1].ParameterType == typeof(bool).MakeByRefType() && p[2].ParameterType == typeof(Piece) &&
+                p[3].ParameterType == typeof(Player.RequirementMode) && p[4].ParameterType == typeof(HashSet<string>) && p[5].ParameterType == typeof(Dictionary<string, int>);
         }
 
         private static bool Resolve()

@@ -24,6 +24,9 @@ namespace GapCloser.Fixes
         private const float CountSeconds = 2f;
         private const float RuleSeconds = 5f;
         private static readonly string[] CheckedVersions = { "1.8.19" };
+        // the code of the chest count and of the pull rules in the checked versions (CodeCheck), their answers are kept
+        private static readonly string[] CheckedCountCode = { "FF0CDAB5" };
+        private static readonly string[] CheckedRuleCode = { "4C98F8A3" };
         private static readonly Dictionary<(Inventory, string), int> Counts = new Dictionary<(Inventory, string), int>();
         private static readonly Dictionary<(string, string, string), bool> Rules = new Dictionary<(string, string, string), bool>();
         private static AccessTools.FieldRef<object, Container> _containerOf;
@@ -51,6 +54,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: AzuCraftyBoxes' chest count, its chest, requirement check, pull rules or debug setting not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, itemCount, CheckedCountCode) || !Plugin.CodeMatches(Name, canPull, CheckedRuleCode)) return;
             _containerOf = AccessTools.FieldRefAccess<Container>(container, containerField.Name);
             harmony.Patch(itemCount, prefix: Method(nameof(CountPrefix)), postfix: Method(nameof(CountPostfix)));
             harmony.Patch(canPull, prefix: Method(nameof(RulePrefix)), postfix: Method(nameof(RulePostfix)));

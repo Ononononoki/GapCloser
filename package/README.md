@@ -2,7 +2,7 @@
 
 **Fixes and speed-ups for Valheim and the mods I play with: a faster hammer menu and inventory near many chests, occlusion culling and merged buildings for big bases, fast portals, a rock support view for ore deposits, smoke off for more FPS, other mods' errors guarded.**
 
-> Each fix turns on only for the game and mod versions it was checked against (game 1.0.20). Otherwise it stays off and the log says why, unless you turn on `ForceOnUntestedVersions`. Made for my own modpack, more fixes may come.
+> Fixes for other mods check the code they rely on, not the version number. A new version of the other mod keeps the fix on while that code is unchanged, otherwise the fix stays off and the log names the changed method. Fixes of the game turn on for the game versions they were checked against (game 1.0.20). `ForceOnUntestedVersions` turns both on anyway. Made for my own modpack, more fixes may come.
 >
 > **Smoke is off by default** for more FPS. For the game's smoke, set `Smoke = Normal` in the `2 - Options` section of the config.
 
@@ -24,12 +24,12 @@
 - **No warning spam** from stakes and other damage areas.
 - **Sun shadow culling** (optional, off by default): pieces hidden from the sun stop casting sun shadows.
 
-### Other mods (each only for the version named)
+### Other mods (checked versions named, newer ones keep the fix while the code it relies on is unchanged)
 
 - **AzuCraftyBoxes 1.8.19:** faster hammer menu near many chests (each material is counted once, not again for every piece), faster inventory and crafting (chest counts kept until a chest changes, chest names kept), the Forge of Potential no longer teaches every recipe, `gapcloser_fixrecipes` removes the recipes it taught, its fermenter error guarded.
 - **ValheimPlus 0.10.3.0 and 10.4.0:** chest counts for crafting from chests without garbage, its tame hover error guarded (and its breeding error on 0.10.3.0, 10.4.0 fixed it itself), and its spawn protection range also reaches the workbench, forge and artisan table, not only the stonecutter.
 - **ExtraSlots 1.2.21:** slot lookups without garbage, its Bows Before Hoes count skipped while that mod is not installed.
-- **ValheimCommunityPatch 0.36.1, 0.37.0 and 0.38.0:** the smoother loading also works inside its spawn queue.
+- **ValheimCommunityPatch 0.36.1 to 0.39.0:** the smoother loading also works inside its spawn queue.
 
 ## Measured at my castle (about 6,000 pieces)
 
@@ -69,6 +69,7 @@ The range still applies while the tint lingers. Targeting reuses the game's hove
 - Occlusion culling, hidden lights and sun shadow culling need DirectX 11 for now.
 - Occlusion culling and hidden lights leave out pieces that are not buildings, such as PlantEverything plants, saplings and debris, so they never flicker.
 - After a game update the game fixes stay off until a new GapCloser checks them, or until you turn on `ForceOnUntestedVersions`.
+- At the main menu and after spawning, the log names other mods that patch the same methods as GapCloser (`ConflictScan` lines). These lines only inform, no fix turns off because of them.
 
 The following combination was tested in game with GapCloser 1.3.0 on Valheim 1.0.20. These are the tested versions, not a claim about every future release.
 
@@ -80,13 +81,15 @@ The following combination was tested in game with GapCloser 1.3.0 on Valheim 1.0
 
 ValheimOptimized and Balrond Core Optimizer are not made obsolete by GapCloser. With ValheimOptimized loaded, ValheimCommunityPatch steps aside for four overlapping fixes, including hotbar keys and terrain work. Its hotbar stand-down warning is expected in that tested combination. The logs showed no exceptions or errors. [Compatibility test details](https://github.com/Ononononoki/GapCloser/issues/1).
 
+Read offline on 28 Oct 2026, without an in-game test. Balrond Core Optimizer 0.2.7 adds no new overlap, and ValheimCommunityPatch 0.39.0 changes only a log line in the code it shares with GapCloser.
+
 ### Dedicated teleport timing mods
 
 GapCloser automatically skips only its `FastTeleport` patches when OdinPlus QuickTeleport or Muindor QuickTeleport is loaded. The other mod takes priority for teleport timing. Other GapCloser features remain active, and ValheimCommunityPatch alone does not disable FastTeleport.
 
 Detection runs once after plugin creation and matches plugin IDs, not every mod that touches a teleport method. The `FastTeleportOtherModIDs` setting in `3 - Fixes` defaults to `elg.QuickTeleport,muindor.QuickTeleport`. Add a comma-separated plugin ID for another dedicated teleport timing mod. Clear the list to disable automatic detection, or set `FastTeleport = false` to disable GapCloser's teleport changes manually. Restart after changing the list or installed mods.
 
-The saved `FastTeleport` value is left unchanged. Removing the other timing mod lets GapCloser's version run again on the next start if that setting is true. QuickTeleport detection was checked offline. Teleporting with QuickTeleport installed has not been tested in game.
+The saved `FastTeleport` value is left unchanged. Removing the other timing mod lets GapCloser's version run again on the next start if that setting is true. QuickTeleport detection was checked offline, and QuickTeleport 2.0.7's code was read on 28 Oct 2026. It changes the same teleport steps, so the step-aside is needed. Teleporting with QuickTeleport installed has not been tested in game.
 
 ## Credits
 

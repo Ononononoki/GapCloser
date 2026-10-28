@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4
+
+- Fixes for other mods no longer turn off with every new version of that mod. Each checks the code it relies on at startup and stays on while that code is unchanged. A changed method keeps its fix off, and the log names it. `ForceOnUntestedVersions` still turns them on.
+- Works with ValheimCommunityPatch 0.39.0 (the smoother loading inside its spawn queue).
+- New startup log lines (`ConflictScan`) name other mods that patch the same methods as GapCloser, at the main menu and after spawning. They only inform.
+
 ## 1.3.3
 
 - Works with ValheimPlus 10.4.0 and ValheimCommunityPatch 0.38.0. The ValheimPlus chest counts and tame hover guard, and the smoother loading inside ValheimCommunityPatch's spawn queue, were checked against the new versions and turn on again. ValheimPlus 10.4.0 fixed its breeding error itself, so that guard stays for 0.10.3.0.

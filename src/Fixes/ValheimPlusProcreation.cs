@@ -12,6 +12,8 @@ namespace GapCloser.Fixes
         private const string Name = "ValheimPlusProcreationError";
         private const string TargetType = "ValheimPlus.GameClasses.Procreation_Awake_Patch";
         private static readonly string[] CheckedVersions = { "0.10.3.0" };
+        // the code of its Postfix in 0.10.3.0 (CodeCheck), 10.4.0.0 fixed the error itself and has other code
+        private static readonly string[] CheckedCode = { "0EB8D91A" };
         private static readonly AccessTools.FieldRef<Procreation, Character> CharacterOf = AccessTools.FieldRefAccess<Procreation, Character>("m_character");
         private static bool _actedOnce;
 
@@ -27,6 +29,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: {TargetType}.Postfix not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, target, CheckedCode)) return;
             try
             {
                 harmony.Patch(target, prefix: new HarmonyMethod(AccessTools.Method(typeof(ValheimPlusProcreation), nameof(Prefix))));
