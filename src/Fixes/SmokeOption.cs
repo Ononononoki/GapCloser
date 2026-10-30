@@ -22,6 +22,8 @@ namespace GapCloser.Fixes
     internal static class SmokeOption
     {
         private const string Name = "Smoke";
+        // the code of SmokeSpawner.Spawn on Valheim 1.0.20 and 1.0.21 (CodeCheck)
+        private static readonly string[] CheckedCode = { "B1658B85" };
 
         private static ConfigEntry<SmokeMode> _mode;
         private static bool _loggedSkip;
@@ -37,6 +39,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: the game's smoke spawner not found, the game's smoke stays");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, spawn, CheckedCode)) return;
             harmony.Patch(spawn, transpiler: new HarmonyMethod(AccessTools.Method(typeof(SmokeOption), nameof(Transpiler))));
             _mode.SettingChanged += (_, __) => Plugin.Log.LogInfo($"{Name}: {_mode.Value}");
             Plugin.Log.LogInfo($"{Name}: {_mode.Value}");

@@ -23,6 +23,11 @@ namespace GapCloser.Fixes
         private const string Name = "RecipeCleanupCommand";
         private const string Command = "gapcloser_fixrecipes";
         private const int ShownInConsole = 40;
+        // the code of the game's learn rule on Valheim 1.0.20 and 1.0.21 (CodeCheck): Player.UpdateKnownRecipesList and the
+        // Player.HaveRequirements and HaveRequirementItems for a recipe it calls with discover
+        private static readonly string[] CheckedLearnCode = { "CBFB6778" };
+        private static readonly string[] CheckedRequirementsCode = { "9AC77E38" };
+        private static readonly string[] CheckedItemsCode = { "C0C7C7F2" };
         private static readonly AccessTools.FieldRef<Player, HashSet<string>> KnownRecipes = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_knownRecipes");
         private static readonly AccessTools.FieldRef<Player, HashSet<string>> KnownMaterial = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_knownMaterial");
         private static readonly AccessTools.FieldRef<Player, Dictionary<string, int>> KnownStations = AccessTools.FieldRefAccess<Player, Dictionary<string, int>>("m_knownStations");
@@ -32,6 +37,10 @@ namespace GapCloser.Fixes
             var enabled = config.Bind(Sections.Fixes, Name, true,
                 $"Adds the {Command} console command: lists the recipes a character could not have learned, {Command} apply backs up the character and removes them.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
+            var recipeArgs = new[] { typeof(Recipe), typeof(bool), typeof(int), typeof(int) };
+            if (!Plugin.CodeMatches(Name, AccessTools.Method(typeof(Player), "UpdateKnownRecipesList"), CheckedLearnCode)
+                || !Plugin.CodeMatches(Name, AccessTools.Method(typeof(Player), "HaveRequirements", recipeArgs), CheckedRequirementsCode)
+                || !Plugin.CodeMatches(Name, AccessTools.Method(typeof(Player), "HaveRequirementItems", recipeArgs), CheckedItemsCode)) return;
             _onSpawn = config.Bind(Sections.Fixes, "RecipeCleanupOnSpawn", OnSpawn.WithAzuCraftyBoxes,
                 $"Runs the {Command} cleanup by itself on entering a world: WithAzuCraftyBoxes (only with AzuCraftyBoxes installed), Always or Off. Backs up the character first.");
             _azuCraftyBoxes = Chainloader.PluginInfos.ContainsKey(AzuCraftyBoxesForgeRecipes.TargetGuid);

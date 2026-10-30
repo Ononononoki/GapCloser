@@ -34,6 +34,8 @@ namespace GapCloser.Fixes
         private const int MinReads = 10;
         // render queue from which a material counts as see-through
         private const int TransparentQueue = 2500;
+        // the code of WearNTear.SetHealthVisual on Valheim 1.0.20 and 1.0.21 (CodeCheck)
+        private static readonly string[] CheckedCode = { "F301F128" };
 
         private static ConfigEntry<bool> _enabled;
         // the run of all benchmarks switches merged cells between their merged meshes and their own pieces; while it is off
@@ -101,6 +103,11 @@ namespace GapCloser.Fixes
             if (field == null || !field.IsStatic || field.FieldType != typeof(List<Piece>) || health == null || destroy == null)
             {
                 Plugin.Log.LogWarning($"{Name}: the game's piece list or piece events did not look as checked, off");
+                _enabled = null;
+                return;
+            }
+            if (!Plugin.CodeMatches(Name, health, CheckedCode))
+            {
                 _enabled = null;
                 return;
             }

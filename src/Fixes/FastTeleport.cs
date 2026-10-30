@@ -22,6 +22,9 @@ namespace GapCloser.Fixes
         private const float GameCooldown = 2f;
         // the player counts as moved once this close to the target on the ground plane
         private const float MovedWithin = 1f;
+        // the code of Player.UpdateTeleport and Player.TeleportTo on Valheim 1.0.20 and 1.0.21 (CodeCheck)
+        private static readonly string[] CheckedUpdateCode = { "F2A68A0C" };
+        private static readonly string[] CheckedTeleportCode = { "A5F320E9" };
         private static readonly AccessTools.FieldRef<Player, float> Timer = AccessTools.FieldRefAccess<Player, float>("m_teleportTimer");
         private static readonly AccessTools.FieldRef<Player, Vector3> FromPos = AccessTools.FieldRefAccess<Player, Vector3>("m_teleportFromPos");
         private static readonly AccessTools.FieldRef<Player, Vector3> TargetPos = AccessTools.FieldRefAccess<Player, Vector3>("m_teleportTargetPos");
@@ -69,10 +72,12 @@ namespace GapCloser.Fixes
                 return;
             }
             var update = AccessTools.Method(typeof(Player), "UpdateTeleport");
+            var teleport = AccessTools.Method(typeof(Player), "TeleportTo", new[] { typeof(Vector3), typeof(Quaternion), typeof(bool) });
+            if (!Plugin.CodeMatches(Name, update, CheckedUpdateCode) || !Plugin.CodeMatches(Name, teleport, CheckedTeleportCode)) return;
             harmony.Patch(update, prefix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(BeforeUpdate))),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(AfterUpdate))));
             harmony.Patch(AccessTools.Method(typeof(Hud), "GetFadeDuration"), postfix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(Fade))));
-            harmony.Patch(AccessTools.Method(typeof(Player), "TeleportTo", new[] { typeof(Vector3), typeof(Quaternion), typeof(bool) }),
+            harmony.Patch(teleport,
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(FastTeleport), nameof(BeforeTeleport))));
             Plugin.Log.LogInfo($"{Name}: on, fade {_fade.Value} s, cooldown {_cooldown.Value} s, log {_log.Value}");
         }

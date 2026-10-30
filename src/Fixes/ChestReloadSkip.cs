@@ -16,6 +16,8 @@ namespace GapCloser.Fixes
     {
         private const string Name = "ChestReloadSkip";
         private const float StatSeconds = 60f;
+        // the code of Container.Load on Valheim 1.0.20 and 1.0.21 (CodeCheck)
+        private static readonly string[] CheckedCode = { "225C0DE7" };
 
         private static ConfigEntry<bool> _enabled, _selfCheck;
         private static AccessTools.FieldRef<Container, ZNetView> _nview;
@@ -47,6 +49,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: the game's chest load did not look as checked, off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, load, CheckedCode)) return;
             _nview = AccessTools.FieldRefAccess<Container, ZNetView>(nview);
             _inventory = AccessTools.FieldRefAccess<Container, Inventory>(inventory);
             _lastRevision = AccessTools.FieldRefAccess<Container, uint>(revision);

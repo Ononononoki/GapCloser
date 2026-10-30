@@ -2,7 +2,7 @@
 
 **Fixes and speed-ups for Valheim and the mods I play with: a faster hammer menu and inventory near many chests, occlusion culling and merged buildings for big bases, fast portals, a rock support view for ore deposits, smoke off for more FPS, other mods' errors guarded.**
 
-> Fixes for other mods check the code they rely on, not the version number. A new version of the other mod keeps the fix on while that code is unchanged, otherwise the fix stays off and the log names the changed method. Fixes of the game turn on for the game versions they were checked against (game 1.0.20). `ForceOnUntestedVersions` turns both on anyway. Made for my own modpack, more fixes may come.
+> Fixes for other mods check the code they rely on, not the version number. A new version of the other mod keeps the fix on while that code is unchanged, otherwise the fix stays off and the log names the changed method. Fixes of the game check the game code they rely on the same way (checked on game 1.0.20 and 1.0.21). `ForceOnUntestedVersions` turns them on anyway. Made for my own modpack, more fixes may come.
 >
 > **Smoke is off by default** for more FPS. For the game's smoke, set `Smoke = Normal` in the `2 - Options` section of the config.
 
@@ -29,7 +29,7 @@
 - **AzuCraftyBoxes 1.8.19:** faster hammer menu near many chests (each material is counted once, not again for every piece), faster inventory and crafting (chest counts kept until a chest changes, chest names kept), the Forge of Potential no longer teaches every recipe, `gapcloser_fixrecipes` removes the recipes it taught, its fermenter error guarded.
 - **ValheimPlus 0.10.3.0 and 10.4.0:** chest counts for crafting from chests without garbage, its tame hover error guarded (and its breeding error on 0.10.3.0, 10.4.0 fixed it itself), and its spawn protection range also reaches the workbench, forge and artisan table, not only the stonecutter.
 - **ExtraSlots 1.2.21:** slot lookups without garbage, its Bows Before Hoes count skipped while that mod is not installed.
-- **ValheimCommunityPatch 0.36.1 to 0.39.0:** the smoother loading also works inside its spawn queue.
+- **ValheimCommunityPatch 0.36.1 to 0.40.0:** the smoother loading also works inside its spawn queue.
 
 ## Measured at my castle (about 6,000 pieces)
 
@@ -68,7 +68,7 @@ The range still applies while the tint lingers. Targeting reuses the game's hove
 - AzuCraftyBoxes, ValheimPlus, ExtraSlots and ValheimCommunityPatch are optional. Made to run next to [ValheimCommunityPatch](https://thunderstore.io/c/valheim/p/MidnightMods/ValheimCommunityPatch/).
 - Occlusion culling, hidden lights and sun shadow culling need DirectX 11 for now.
 - Occlusion culling and hidden lights leave out pieces that are not buildings, such as PlantEverything plants, saplings and debris, so they never flicker.
-- After a game update the game fixes stay off until a new GapCloser checks them, or until you turn on `ForceOnUntestedVersions`.
+- After a game update a game fix stays on while the game code it relies on is unchanged. A fix whose code changed stays off until a new GapCloser checks it, or until you turn on `ForceOnUntestedVersions`, and the log names the changed method.
 - At the main menu and after spawning, the log names other mods that patch the same methods as GapCloser (`ConflictScan` lines). These lines only inform, no fix turns off because of them.
 
 The following combination was tested in game with GapCloser 1.3.0 on Valheim 1.0.20. These are the tested versions, not a claim about every future release.

@@ -14,6 +14,8 @@ namespace GapCloser.Fixes
         private static readonly string[] CheckedVersions = { "0.10.3.0" };
         // the code of its Postfix in 0.10.3.0 (CodeCheck), 10.4.0.0 fixed the error itself and has other code
         private static readonly string[] CheckedCode = { "0EB8D91A" };
+        // the code of its Postfix in 10.4.0.0, which checks for the creature itself: the fix is not needed there
+        private static readonly string[] FixedCode = { "0AE62C09" };
         private static readonly AccessTools.FieldRef<Procreation, Character> CharacterOf = AccessTools.FieldRefAccess<Procreation, Character>("m_character");
         private static bool _actedOnce;
 
@@ -27,6 +29,12 @@ namespace GapCloser.Fixes
             if (target == null)
             {
                 Plugin.Log.LogWarning($"{Name}: {TargetType}.Postfix not found, the fix stays off");
+                return;
+            }
+            string print = CodeCheck.Of(target);
+            if (Array.IndexOf(FixedCode, print) >= 0)
+            {
+                Plugin.Log.LogInfo($"{Name}: not needed, ValheimPlus checks for the creature itself in this code ({print})");
                 return;
             }
             if (!Plugin.CodeMatches(Name, target, CheckedCode)) return;

@@ -23,10 +23,11 @@ namespace GapCloser
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.3.4";
+        public const string ModVersion = "1.3.5";
 
-        // the game versions the fixes of the game's own code were checked against
-        private static readonly string[] CheckedGameVersions = { "1.0.20" };
+        // the game versions the fixes of the game's own code were checked against, only for the log: each fix's checks of
+        // the game code it relies on decide
+        private static readonly string[] CheckedGameVersions = { "1.0.20", "1.0.21" };
 
         internal static ManualLogSource Log;
         private static ConfigEntry<bool> _force;
@@ -37,7 +38,7 @@ namespace GapCloser
             Log = Logger;
             MoveOldSettings();
             _force = Config.Bind(Sections.General, "ForceOnUntestedVersions", false,
-                "Turns the fixes on also for game versions they were not checked against and where another mod's code they rely on changed. At your own risk, the log names each one.");
+                "Turns the fixes on also where the game's or another mod's code they rely on changed. At your own risk, the log names each one.");
             _harmony = new Harmony(ModGuid);
             ApplyFix(nameof(AzuCraftyBoxesForgeRecipes), AzuCraftyBoxesForgeRecipes.Apply);
             ApplyFix(nameof(ValheimPlusProcreation), ValheimPlusProcreation.Apply);
@@ -188,18 +189,14 @@ namespace GapCloser
         // ForceOnUntestedVersions, for a fix with a check of its own (the graphics API)
         internal static bool ForceOnUntested => _force.Value;
 
-        // true when the game is a version the fix was checked against, otherwise logs why the fix stays off
+        // true on every game version. a version other than the checked ones is only logged: the fix's own checks of the
+        // game code it relies on decide (CodeMatches, the places a transpiler counts, the members it reads)
         internal static bool GameMatches(string fix)
         {
             string installed = global::Version.CurrentVersion.ToString();
-            if (Array.IndexOf(CheckedGameVersions, installed) >= 0) return true;
-            if (_force.Value)
-            {
-                Log.LogWarning($"{fix}: Valheim {installed} is not a checked version ({string.Join(", ", CheckedGameVersions)}), forced on by ForceOnUntestedVersions");
-                return true;
-            }
-            Log.LogWarning($"{fix}: Valheim {installed} is not a checked version ({string.Join(", ", CheckedGameVersions)}), the fix stays off (ForceOnUntestedVersions turns it on)");
-            return false;
+            if (Array.IndexOf(CheckedGameVersions, installed) < 0)
+                Log.LogInfo($"{fix}: Valheim {installed} is not a checked version ({string.Join(", ", CheckedGameVersions)}), the game code the fix relies on decides");
+            return true;
         }
     }
 }

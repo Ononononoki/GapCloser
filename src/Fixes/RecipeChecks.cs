@@ -12,6 +12,8 @@ namespace GapCloser.Fixes
     internal static class RecipeChecks
     {
         private const string Name = "RecipeChecksOncePerFrame";
+        // the code of Player.UpdateKnownRecipesList on Valheim 1.0.20 and 1.0.21 (CodeCheck)
+        private static readonly string[] CheckedCode = { "CBFB6778" };
         private static readonly AccessTools.FieldRef<Player, HashSet<string>> KnownRecipes = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_knownRecipes");
         private static Action<Player> _check;
         private static Action<InventoryGui, bool> _refreshPanel;
@@ -25,6 +27,7 @@ namespace GapCloser.Fixes
                 "Runs the game's recipe learning check once a frame instead of on every inventory change.");
             if (!enabled.Value || !Plugin.GameMatches(Name)) return;
             var target = AccessTools.Method(typeof(Player), "UpdateKnownRecipesList");
+            if (!Plugin.CodeMatches(Name, target, CheckedCode)) return;
             harmony.Patch(target, prefix: new HarmonyMethod(AccessTools.Method(typeof(RecipeChecks), nameof(Prefix))));
             // the patched method itself, so the other mods' patches on it still run
             _check = AccessTools.MethodDelegate<Action<Player>>(target);

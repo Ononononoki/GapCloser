@@ -29,6 +29,10 @@ namespace GapCloser.Fixes
         private const float StatSeconds = 60f;
         // the game's overlap buffer holds 128 colliders (MineRock5.m_tempColliders)
         private const int QueryBuffer = 128;
+        // the code of MineRock5.UpdateSupport and SetupColliders on Valheim 1.0.20 and 1.0.21 (CodeCheck), the support rule
+        // RockSupportModel works out
+        private static readonly string[] CheckedSupportCode = { "FCF7AFC4" };
+        private static readonly string[] CheckedSetupCode = { "D3973829" };
 
         private static ConfigEntry<bool> _enabled, _showAnchors, _selfCheck, _logChecks;
         private static ConfigEntry<Color> _fallsColor, _bestColor, _anchorColor, _heldColor;
@@ -107,6 +111,8 @@ namespace GapCloser.Fixes
             _logChecks = config.Bind(Sections.Debug, "RockSupportLogChecks", false,
                 "Test: a log line for each hit that breaks a rock part.");
             if (!_enabled.Value || !Plugin.GameMatches(Name)) return;
+            if (!Plugin.CodeMatches(Name, AccessTools.Method(typeof(MineRock5), "UpdateSupport"), CheckedSupportCode)
+                || !Plugin.CodeMatches(Name, AccessTools.Method(typeof(MineRock5), "SetupColliders"), CheckedSetupCode)) return;
             if (!Bind())
             {
                 Plugin.Log.LogWarning($"{Name}: the game's mine rock parts did not look as checked, off");

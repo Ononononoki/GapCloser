@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.5
+
+- Works with Valheim 1.0.21. The game fixes no longer turn off with a new game version: each checks the game code it relies on at startup, like the fixes for other mods, and stays on while that code is unchanged. A changed method keeps its fix off, and the log names it.
+- Works with ValheimCommunityPatch 0.40.0 and ValheimPlus 10.4.0. The ValheimPlus breeding guard is not needed with ValheimPlus 10.4.0, which checks for the creature itself, and the log says so.
+
 ## 1.3.4
 
 - Fixes for other mods no longer turn off with every new version of that mod. Each checks the code it relies on at startup and stays on while that code is unchanged. A changed method keeps its fix off, and the log names it. `ForceOnUntestedVersions` still turns them on.

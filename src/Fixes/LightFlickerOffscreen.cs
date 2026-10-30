@@ -14,6 +14,8 @@ namespace GapCloser.Fixes
         // added to a light's range, for the camera's move within a frame
         private const float Margin = 1f;
         private const float StatSeconds = 120f;
+        // the code of LightFlicker.CustomUpdate on Valheim 1.0.20 and 1.0.21 (CodeCheck, read in unity's runtime)
+        private static readonly string[] CheckedCode = { "DAD29607" };
 
         private static readonly Plane[] Planes = new Plane[6];
         private static AccessTools.FieldRef<LightFlicker, float> _timeOf;
@@ -34,6 +36,7 @@ namespace GapCloser.Fixes
                 Plugin.Log.LogWarning($"{Name}: the game's light flicker update not found, the fix stays off");
                 return;
             }
+            if (!Plugin.CodeMatches(Name, update, CheckedCode)) return;
             _timeOf = AccessTools.FieldRefAccess<LightFlicker, float>("m_time");
             _lightOf = AccessTools.FieldRefAccess<LightFlicker, Light>("m_light");
             // after other mods' prefixes (ValheimCommunityPatch's distance pause)
