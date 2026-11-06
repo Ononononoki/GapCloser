@@ -23,7 +23,7 @@ namespace GapCloser
     {
         public const string ModGuid = "onononoki.GapCloser";
         public const string ModName = "GapCloser";
-        public const string ModVersion = "1.3.5";
+        public const string ModVersion = "1.3.6";
 
         // the game versions the fixes of the game's own code were checked against, only for the log: each fix's checks of
         // the game code it relies on decide
@@ -44,6 +44,7 @@ namespace GapCloser
             ApplyFix(nameof(ValheimPlusProcreation), ValheimPlusProcreation.Apply);
             ApplyFix(nameof(TriggerWarningSpam), TriggerWarningSpam.Apply);
             ApplyFix(nameof(RecipeChecks), RecipeChecks.Apply);
+            ApplyFix(nameof(WishboneForgeWarning), WishboneForgeWarning.Apply);
             ApplyFix(nameof(RecipeCleanup), RecipeCleanup.Apply);
             ApplyFix(nameof(ErrorGuards), ErrorGuards.Apply);
             ApplyFix(nameof(AzuCraftyBoxesCraftingList), AzuCraftyBoxesCraftingList.Apply);

@@ -18,3 +18,4 @@
 !shaders/*.shader
 /local_*/
 /release_*/
+/test/WishboneUnity/

@@ -1,6 +1,6 @@
 # GapCloser
 
-**Fixes and speed-ups for Valheim and the mods I play with: a faster hammer menu and inventory near many chests, occlusion culling and merged buildings for big bases, fast portals, a rock support view for ore deposits, smoke off for more FPS, other mods' errors guarded.**
+**Fixes and speed-ups for Valheim and the mods I play with: a faster hammer menu and inventory near many chests, occlusion culling and merged buildings for big bases, fast portals, a rock support view for ore deposits, a Wishbone warning before a forge upgrade destroys an item, smoke off for more FPS, other mods' errors guarded.**
 
 > Fixes for other mods check the code they rely on, not the version number. A new version of the other mod keeps the fix on while that code is unchanged, otherwise the fix stays off and the log names the changed method. Fixes of the game check the game code they rely on the same way (checked on game 1.0.20 and 1.0.21). `ForceOnUntestedVersions` turns them on anyway. Made for my own modpack, more fixes may come.
 >
@@ -19,6 +19,7 @@
 - **Building effects pause off screen.** Fires, ovens and portals no camera sees stop simulating and catch up when seen.
 - **Light flicker pauses** for lights whose light reaches nothing in view.
 - **Rock support view.** Each part of a mine rock you look at is tinted by what breaking it does. Blue holds others, green drops, red is held from outside, and yellow is held by other parts. Shift+O toggles the tint, and the tooltip shows your configured key. Range, linger time, and refresh interval are configurable.
+- **Wishbone forge warning.** With the Wishbone equipped, the Forge of Potential warns you when the next attempt on the selected item would destroy it. The Wishbone pings once a second (its own effect, only you see it, sound at 30%), the refine button glows, and hovering it shows the warning. While such an upgrade runs, the bar pulses about three times a second, so you can still cancel. Checking does not use up an attempt, and a missing pulse does not guarantee a safe attempt. `WishboneForgeWarning` in `2 - Options` switches it off.
 - **Smoke off by default.** No smoke from fires, kilns and smelters: much less physics near many fires, and no Smoked debuff. Fires, kilns and smelters work as before. `Smoke = Normal` brings the game's smoke back.
 - **Recipe learning check** once a frame instead of on every inventory change.
 - **No warning spam** from stakes and other damage areas.
@@ -47,7 +48,7 @@
 
 ## Config
 
-`BepInEx/config/onononoki.GapCloser.cfg`. Every fix can be switched off on its own. Sections: `1 - General`, `2 - Options` (Smoke, Off by default), `3 - Fixes`, `4 - Rock Support` (colors, key, range, linger time, refresh interval), `9 - Debug` (logs, self-checks, and the benchmark keys: Home switches occlusion culling to compare, Shift+End measures every part and writes `BepInEx/GapCloser_benchmarks.txt`). Settings from older versions move to the new sections by themselves.
+`BepInEx/config/onononoki.GapCloser.cfg`. Every fix can be switched off on its own. Sections: `1 - General`, `2 - Options` (Smoke, Off by default, and WishboneForgeWarning, on by default), `3 - Fixes`, `4 - Rock Support` (colors, key, range, linger time, refresh interval), `9 - Debug` (logs, self-checks, and the benchmark keys: Home switches occlusion culling to compare, Shift+End measures every part and writes `BepInEx/GapCloser_benchmarks.txt`). Settings from older versions move to the new sections by themselves.
 
 ### Rock support settings
 
@@ -70,6 +71,7 @@ The range still applies while the tint lingers. Targeting reuses the game's hove
 - Occlusion culling and hidden lights leave out pieces that are not buildings, such as PlantEverything plants, saplings and debris, so they never flicker.
 - After a game update a game fix stays on while the game code it relies on is unchanged. A fix whose code changed stays off until a new GapCloser checks it, or until you turn on `ForceOnUntestedVersions`, and the log names the changed method.
 - At the main menu and after spawning, the log names other mods that patch the same methods as GapCloser (`ConflictScan` lines). These lines only inform, no fix turns off because of them.
+- The Wishbone forge warning was checked on game 1.0.21. It stays off when the game's upgrade code differs from the checked code or another mod patches the upgrade roll, and the log says why. `ForceOnUntestedVersions` does not turn it on.
 
 The following combination was tested in game with GapCloser 1.3.0 on Valheim 1.0.20. These are the tested versions, not a claim about every future release.
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.6
+
+- New Wishbone forge warning. With the Wishbone equipped, it warns you when a Forge of Potential upgrade would destroy the item. `WishboneForgeWarning` in `2 - Options` turns it off.
+- It stays off when the game's upgrade code changed (even with `ForceOnUntestedVersions`), leaves other crafting stations alone, and catches its own errors.
+
 ## 1.3.5
 
 - Works with Valheim 1.0.21. The game fixes no longer turn off with a new game version: each checks the game code it relies on at startup, like the fixes for other mods, and stays on while that code is unchanged. A changed method keeps its fix off, and the log names it.
